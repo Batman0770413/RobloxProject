@@ -1,0 +1,494 @@
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer
+local camera = workspace.CurrentCamera
+
+local factoriesFolder = workspace:WaitForChild("Factories")
+
+local function getPlayerFactory()
+	for _, factory in ipairs(factoriesFolder:GetChildren()) do
+		if factory:GetAttribute("OwnerUserId") == player.UserId then
+			return factory
+		end
+	end
+	return nil
+end
+
+local gui = script.Parent
+local selectedTool = gui:WaitForChild("SelectedTool")
+
+local placePartEvent = ReplicatedStorage:WaitForChild("PlacePart")
+local deletePartEvent = ReplicatedStorage:WaitForChild("DeletePart")
+local transformPartEvent = ReplicatedStorage:WaitForChild("TransformPart")
+
+local GRID_SIZE = 4
+local BLOCK_SIZE = Vector3.new(4, 4, 4)
+local MIN_SIZE = Vector3.new(1, 1, 1)
+local MAX_SIZE = Vector3.new(50, 50, 50)
+
+local previewBlock = Instance.new("Part")
+previewBlock.Name = "BuildPreview"
+previewBlock.Size = BLOCK_SIZE
+previewBlock.Anchored = true
+previewBlock.CanCollide = false
+previewBlock.CanTouch = false
+previewBlock.CanQuery = false
+previewBlock.Transparency = 0.5
+previewBlock.Material = Enum.Material.ForceField
+previewBlock.Color = Color3.fromRGB(0, 255, 100)
+previewBlock.Parent = workspace
+
+local currentPosition = nil
+local currentTarget = nil
+local currentNormal = nil
+
+local selectedBlock = nil
+local lastClickedBlock = nil
+
+local highlight = Instance.new("Highlight")
+highlight.Name = "SelectedBlockHighlight"
+highlight.FillColor = Color3.fromRGB(255, 200, 0)
+highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+highlight.FillTransparency = 0.7
+highlight.OutlineTransparency = 0
+highlight.Enabled = false
+highlight.Parent = workspace
+
+local positionLabel = gui:WaitForChild("BuildPanel"):WaitForChild("PositionLabel")
+
+-- =============================================
+-- TransformSystem
+-- =============================================
+
+local transformPanel = nil
+local transformTextBoxes = {}
+local originalValues = nil
+
+local function snap(value)
+	return math.floor((value / GRID_SIZE) + 0.5) * GRID_SIZE
+end
+
+local function snapPosition(position)
+	return Vector3.new(
+		snap(position.X),
+		position.Y,
+		snap(position.Z)
+	)
+end
+
+local function createButton(name, text, parent, position, size, color)
+	local btn = Instance.new("TextButton")
+	btn.Name = name
+	btn.Text = text
+	btn.Parent = parent
+	btn.Position = position
+	btn.Size = size
+	btn.BackgroundColor3 = color or Color3.fromRGB(45, 45, 45)
+	btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	btn.Font = Enum.Font.SourceSansBold
+	btn.TextSize = 14
+	btn.BorderSizePixel = 0
+	btn.AutoButtonColor = true
+	return btn
+end
+
+local function createLabel(name, text, parent, position, size)
+	local lbl = Instance.new("TextLabel")
+	lbl.Name = name
+	lbl.Text = text
+	lbl.Parent = parent
+	lbl.Position = position
+	lbl.Size = size
+	lbl.BackgroundTransparency = 1
+	lbl.TextColor3 = Color3.fromRGB(200, 200, 200)
+	lbl.Font = Enum.Font.SourceSansBold
+	lbl.TextSize = 13
+	lbl.TextXAlignment = Enum.TextXAlignment.Left
+	return lbl
+end
+
+local function createTextBox(name, parent, position, size, defaultText)
+	local tb = Instance.new("TextBox")
+	tb.Name = name
+	tb.Parent = parent
+	tb.Position = position
+	tb.Size = size
+	tb.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+	tb.TextColor3 = Color3.fromRGB(255, 255, 255)
+	tb.Font = Enum.Font.SourceSans
+	tb.TextSize = 13
+	tb.Text = defaultText or "0"
+	tb.PlaceholderText = "0"
+	tb.ClearTextOnFocus = false
+	tb.BorderSizePixel = 0
+	return tb
+end
+
+local function createTransformPanel()
+	local panel = Instance.new("Frame")
+	panel.Name = "TransformPanel"
+	panel.Parent = gui
+	panel.Size = UDim2.new(0, 280, 0, 420)
+	panel.Position = UDim2.new(0.5, -140, 0.5, -210)
+	panel.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+	panel.BorderSizePixel = 0
+	panel.Visible = false
+
+	-- عنوان
+	local title = createLabel("Title", "تعديل البلوكة", panel, UDim2.new(0, 10, 0, 5), UDim2.new(0, 260, 0, 25))
+	title.TextSize = 18
+	title.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+	-- زر إغلاق
+	local closeBtn = createButton("CloseBtn", "X", panel, UDim2.new(1, -30, 0, 5), UDim2.new(0, 25, 0, 25), Color3.fromRGB(180, 40, 40))
+
+	-- Position Section
+	createLabel("PosLabel", "Position (X / Y / Z)", panel, UDim2.new(0, 10, 0, 40), UDim2.new(0, 260, 0, 20))
+	transformTextBoxes.PosX = createTextBox("PosX", panel, UDim2.new(0, 10, 0, 65), UDim2.new(0, 80, 0, 25), "0")
+	transformTextBoxes.PosY = createTextBox("PosY", panel, UDim2.new(0, 100, 0, 65), UDim2.new(0, 80, 0, 25), "0")
+	transformTextBoxes.PosZ = createTextBox("PosZ", panel, UDim2.new(0, 190, 0, 65), UDim2.new(0, 80, 0, 25), "0")
+
+	-- Rotation Section
+	createLabel("RotLabel", "Rotation (X / Y / Z)", panel, UDim2.new(0, 10, 0, 100), UDim2.new(0, 260, 0, 20))
+	transformTextBoxes.RotX = createTextBox("RotX", panel, UDim2.new(0, 10, 0, 125), UDim2.new(0, 80, 0, 25), "0")
+	transformTextBoxes.RotY = createTextBox("RotY", panel, UDim2.new(0, 100, 0, 125), UDim2.new(0, 80, 0, 25), "0")
+	transformTextBoxes.RotZ = createTextBox("RotZ", panel, UDim2.new(0, 190, 0, 125), UDim2.new(0, 80, 0, 25), "0")
+
+	-- Size Section
+	createLabel("SizeLabel", "Size (X / Y / Z)", panel, UDim2.new(0, 10, 0, 160), UDim2.new(0, 260, 0, 20))
+	transformTextBoxes.SizeX = createTextBox("SizeX", panel, UDim2.new(0, 10, 0, 185), UDim2.new(0, 80, 0, 25), "4")
+	transformTextBoxes.SizeY = createTextBox("SizeY", panel, UDim2.new(0, 100, 0, 185), UDim2.new(0, 80, 0, 25), "4")
+	transformTextBoxes.SizeZ = createTextBox("SizeZ", panel, UDim2.new(0, 190, 0, 185), UDim2.new(0, 80, 0, 25), "4")
+
+	-- Move Buttons
+	createLabel("MoveLabel", "تحريك سريع", panel, UDim2.new(0, 10, 0, 220), UDim2.new(0, 260, 0, 20))
+	createButton("MoveXPlus", "X+", panel, UDim2.new(0, 10, 0, 245), UDim2.new(0, 80, 0, 25), Color3.fromRGB(40, 80, 120))
+	createButton("MoveXMinus", "X-", panel, UDim2.new(0, 100, 0, 245), UDim2.new(0, 80, 0, 25), Color3.fromRGB(40, 80, 120))
+	createButton("MoveYPlus", "Y+", panel, UDim2.new(0, 190, 0, 245), UDim2.new(0, 80, 0, 25), Color3.fromRGB(40, 80, 120))
+	createButton("MoveYMinus", "Y-", panel, UDim2.new(0, 10, 0, 275), UDim2.new(0, 80, 0, 25), Color3.fromRGB(40, 80, 120))
+	createButton("MoveZPlus", "Z+", panel, UDim2.new(0, 100, 0, 275), UDim2.new(0, 80, 0, 25), Color3.fromRGB(40, 80, 120))
+	createButton("MoveZMinus", "Z-", panel, UDim2.new(0, 190, 0, 275), UDim2.new(0, 80, 0, 25), Color3.fromRGB(40, 80, 120))
+
+	-- Rotate Buttons
+	createLabel("RotateLabel", "تدوير 90°", panel, UDim2.new(0, 10, 0, 310), UDim2.new(0, 260, 0, 20))
+	createButton("RotXBtn", "Rotate X", panel, UDim2.new(0, 10, 0, 335), UDim2.new(0, 80, 0, 25), Color3.fromRGB(120, 80, 40))
+	createButton("RotYBtn", "Rotate Y", panel, UDim2.new(0, 100, 0, 335), UDim2.new(0, 80, 0, 25), Color3.fromRGB(120, 80, 40))
+	createButton("RotZBtn", "Rotate Z", panel, UDim2.new(0, 190, 0, 335), UDim2.new(0, 80, 0, 25), Color3.fromRGB(120, 80, 40))
+
+	-- Scale Buttons
+	createLabel("ScaleLabel", "تكبير / تصغير", panel, UDim2.new(0, 10, 0, 370), UDim2.new(0, 260, 0, 20))
+	createButton("ScalePlus", "Scale +", panel, UDim2.new(0, 10, 0, 395), UDim2.new(0, 130, 0, 25), Color3.fromRGB(40, 120, 40))
+	createButton("ScaleMinus", "Scale -", panel, UDim2.new(0, 150, 0, 395), UDim2.new(0, 130, 0, 25), Color3.fromRGB(120, 40, 40))
+
+	-- Action Buttons (Apply / Cancel / Reset)
+	createButton("ApplyBtn", "تطبيق", panel, UDim2.new(0, 10, 0, 430), UDim2.new(0, 80, 0, 30), Color3.fromRGB(40, 140, 60))
+	createButton("CancelBtn", "إلغاء", panel, UDim2.new(0, 100, 0, 430), UDim2.new(0, 80, 0, 30), Color3.fromRGB(140, 40, 40))
+	createButton("ResetBtn", "إعادة", panel, UDim2.new(0, 190, 0, 430), UDim2.new(0, 80, 0, 30), Color3.fromRGB(100, 100, 40))
+
+	-- تكبير اللوحة لتسع الأزرار
+	panel.Size = UDim2.new(0, 280, 0, 470)
+
+	return panel
+end
+
+local function updateTextBoxes(pos, rot, size)
+	transformTextBoxes.PosX.Text = string.format("%.1f", pos.X)
+	transformTextBoxes.PosY.Text = string.format("%.1f", pos.Y)
+	transformTextBoxes.PosZ.Text = string.format("%.1f", pos.Z)
+	transformTextBoxes.RotX.Text = string.format("%.0f", rot.X)
+	transformTextBoxes.RotY.Text = string.format("%.0f", rot.Y)
+	transformTextBoxes.RotZ.Text = string.format("%.0f", rot.Z)
+	transformTextBoxes.SizeX.Text = string.format("%.1f", size.X)
+	transformTextBoxes.SizeY.Text = string.format("%.1f", size.Y)
+	transformTextBoxes.SizeZ.Text = string.format("%.1f", size.Z)
+end
+
+local function readTextBoxes()
+	local function num(text)
+		local n = tonumber(text)
+		return n or 0
+	end
+
+	local pos = Vector3.new(
+		num(transformTextBoxes.PosX.Text),
+		num(transformTextBoxes.PosY.Text),
+		num(transformTextBoxes.PosZ.Text)
+	)
+	local rot = Vector3.new(
+		num(transformTextBoxes.RotX.Text),
+		num(transformTextBoxes.RotY.Text),
+		num(transformTextBoxes.RotZ.Text)
+	)
+	local size = Vector3.new(
+		math.clamp(num(transformTextBoxes.SizeX.Text), MIN_SIZE.X, MAX_SIZE.X),
+		math.clamp(num(transformTextBoxes.SizeY.Text), MIN_SIZE.Y, MAX_SIZE.Y),
+		math.clamp(num(transformTextBoxes.SizeZ.Text), MIN_SIZE.Z, MAX_SIZE.Z)
+	)
+
+	return pos, rot, size
+end
+
+local function showTransformPanel(block)
+	if not block or not block:IsA("BasePart") then return end
+
+	originalValues = {
+		Position = block.Position,
+		Rotation = block.Orientation,
+		Size = block.Size
+	}
+
+	updateTextBoxes(block.Position, block.Orientation, block.Size)
+	transformPanel.Visible = true
+end
+
+local function hideTransformPanel()
+	transformPanel.Visible = false
+end
+
+local function applyTransform()
+	if not selectedBlock or not selectedBlock:IsDescendantOf(workspace) then
+		hideTransformPanel()
+		return
+	end
+
+	local pos, rot, size = readTextBoxes()
+
+	transformPartEvent:FireServer(selectedBlock, pos, rot, size)
+	hideTransformPanel()
+end
+
+local function cancelTransform()
+	if originalValues and selectedBlock then
+		updateTextBoxes(originalValues.Position, originalValues.Rotation, originalValues.Size)
+	end
+	hideTransformPanel()
+end
+
+local function resetTransform()
+	if originalValues then
+		updateTextBoxes(originalValues.Position, originalValues.Rotation, originalValues.Size)
+	end
+end
+
+local function quickMove(axis, direction)
+	local pos, rot, size = readTextBoxes()
+	if axis == "X" then
+		pos = Vector3.new(pos.X + direction * GRID_SIZE, pos.Y, pos.Z)
+	elseif axis == "Y" then
+		pos = Vector3.new(pos.X, pos.Y + direction * GRID_SIZE, pos.Z)
+	elseif axis == "Z" then
+		pos = Vector3.new(pos.X, pos.Y, pos.Z + direction * GRID_SIZE)
+	end
+	updateTextBoxes(pos, rot, size)
+end
+
+local function quickRotate(axis)
+	local pos, rot, size = readTextBoxes()
+	if axis == "X" then
+		rot = Vector3.new(rot.X + 90, rot.Y, rot.Z)
+	elseif axis == "Y" then
+		rot = Vector3.new(rot.X, rot.Y + 90, rot.Z)
+	elseif axis == "Z" then
+		rot = Vector3.new(rot.X, rot.Y, rot.Z + 90)
+	end
+	updateTextBoxes(pos, rot, size)
+end
+
+local function quickScale(direction)
+	local pos, rot, size = readTextBoxes()
+	local delta = direction * 1
+	size = Vector3.new(
+		math.clamp(size.X + delta, MIN_SIZE.X, MAX_SIZE.X),
+		math.clamp(size.Y + delta, MIN_SIZE.Y, MAX_SIZE.Y),
+		math.clamp(size.Z + delta, MIN_SIZE.Z, MAX_SIZE.Z)
+	)
+	updateTextBoxes(pos, rot, size)
+end
+
+-- إنشاء اللوحة
+transformPanel = createTransformPanel()
+
+-- ربط الأزرار
+transformPanel.CloseBtn.Activated:Connect(function()
+	cancelTransform()
+end)
+
+transformPanel.ApplyBtn.Activated:Connect(applyTransform)
+transformPanel.CancelBtn.Activated:Connect(cancelTransform)
+transformPanel.ResetBtn.Activated:Connect(resetTransform)
+
+transformPanel.MoveXPlus.Activated:Connect(function() quickMove("X", 1) end)
+transformPanel.MoveXMinus.Activated:Connect(function() quickMove("X", -1) end)
+transformPanel.MoveYPlus.Activated:Connect(function() quickMove("Y", 1) end)
+transformPanel.MoveYMinus.Activated:Connect(function() quickMove("Y", -1) end)
+transformPanel.MoveZPlus.Activated:Connect(function() quickMove("Z", 1) end)
+transformPanel.MoveZMinus.Activated:Connect(function() quickMove("Z", -1) end)
+
+transformPanel.RotXBtn.Activated:Connect(function() quickRotate("X") end)
+transformPanel.RotYBtn.Activated:Connect(function() quickRotate("Y") end)
+transformPanel.RotZBtn.Activated:Connect(function() quickRotate("Z") end)
+
+transformPanel.ScalePlus.Activated:Connect(function() quickScale(1) end)
+transformPanel.ScaleMinus.Activated:Connect(function() quickScale(-1) end)
+
+-- =============================================
+-- Raycast & Build System
+-- =============================================
+
+local function getMouseRaycast()
+	local factory = getPlayerFactory()
+	if not factory then return nil end
+
+	local mouseLocation = UserInputService:GetMouseLocation()
+	local ray = camera:ViewportPointToRay(mouseLocation.X, mouseLocation.Y)
+
+	local buildArea = factory:FindFirstChild("BuildArea")
+	local playerBuilds = factory:FindFirstChild("PlayerBuilds")
+
+	if not buildArea or not playerBuilds then return nil end
+
+	local raycastParams = RaycastParams.new()
+	raycastParams.FilterType = Enum.RaycastFilterType.Include
+	raycastParams.FilterDescendantsInstances = { buildArea, playerBuilds }
+
+	return workspace:Raycast(ray.Origin, ray.Direction * 1000, raycastParams)
+end
+
+local function getBuildPosition(result, buildArea)
+	local target = result.Instance
+	local normal = result.Normal
+	local hitPosition = result.Position
+
+	if target.Name == "BuildArea" then
+		local topY = target.Position.Y + target.Size.Y / 2
+		local blockCenterY = topY + BLOCK_SIZE.Y / 2
+		return Vector3.new(snap(hitPosition.X), blockCenterY, snap(hitPosition.Z))
+	end
+
+	local position = hitPosition + Vector3.new(
+		normal.X * BLOCK_SIZE.X / 2,
+		normal.Y * BLOCK_SIZE.Y / 2,
+		normal.Z * BLOCK_SIZE.Z / 2
+	)
+
+	local topY = buildArea.Position.Y + buildArea.Size.Y / 2
+	local baseY = topY + BLOCK_SIZE.Y / 2
+	local yOffset = position.Y - baseY
+	local snappedY = baseY + math.floor(yOffset / BLOCK_SIZE.Y + 0.5) * BLOCK_SIZE.Y
+
+	return Vector3.new(snap(position.X), snappedY, snap(position.Z))
+end
+
+RunService.RenderStepped:Connect(function()
+	local factory = getPlayerFactory()
+
+	if not factory then
+		previewBlock.Transparency = 1
+		highlight.Enabled = false
+		positionLabel.Text = "لم يتم العثور على مصنعك"
+		currentPosition = nil
+		currentTarget = nil
+		currentNormal = nil
+		return
+	end
+
+	local result = getMouseRaycast()
+
+	if selectedTool.Value == "Block" then
+		highlight.Enabled = false
+
+		if not result then
+			previewBlock.Transparency = 1
+			currentPosition = nil
+			currentTarget = nil
+			currentNormal = nil
+			positionLabel.Text = "وجّه المؤشر إلى منطقة البناء"
+			return
+		end
+
+		local buildArea = factory:FindFirstChild("BuildArea")
+		if not buildArea then
+			previewBlock.Transparency = 1
+			return
+		end
+
+		local buildPosition = getBuildPosition(result, buildArea)
+		currentPosition = buildPosition
+		currentTarget = result.Instance
+		currentNormal = result.Normal
+
+		previewBlock.Position = buildPosition
+		previewBlock.Transparency = 0.5
+
+		positionLabel.Text = string.format("مكان البناء: X %.0f | Y %.0f | Z %.0f", buildPosition.X, buildPosition.Y, buildPosition.Z)
+
+	elseif selectedTool.Value == "Select" then
+		previewBlock.Transparency = 1
+
+		local playerBuilds = factory:FindFirstChild("PlayerBuilds")
+
+		if result and playerBuilds and result.Instance:IsDescendantOf(playerBuilds) then
+			selectedBlock = result.Instance
+			highlight.Adornee = selectedBlock
+			highlight.Enabled = true
+
+			local pos = selectedBlock.Position
+			positionLabel.Text = string.format("البلوك المحدد: X %.0f | Y %.0f | Z %.0f", pos.X, pos.Y, pos.Z)
+		else
+			selectedBlock = nil
+			highlight.Adornee = nil
+			highlight.Enabled = false
+			positionLabel.Text = "مرّر المؤشر فوق بلوكة من بنائك"
+		end
+
+	else
+		previewBlock.Transparency = 1
+		highlight.Enabled = false
+		selectedBlock = nil
+		positionLabel.Text = "اختر أداة"
+	end
+end)
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if gameProcessed then return end
+	if input.UserInputType ~= Enum.UserInputType.MouseButton1 then return end
+
+	if selectedTool.Value == "Block" then
+		if currentPosition then
+			placePartEvent:FireServer("Block", currentPosition, currentTarget, currentNormal)
+		end
+
+	elseif selectedTool.Value == "Select" then
+		local result = getMouseRaycast()
+		if result then
+			local factory = getPlayerFactory()
+			local playerBuilds = factory and factory:FindFirstChild("PlayerBuilds")
+
+			if playerBuilds and result.Instance:IsDescendantOf(playerBuilds) then
+				-- النقرة الثانية على نفس البلوك تفتح TransformPanel
+				if lastClickedBlock == result.Instance and selectedBlock == result.Instance then
+					showTransformPanel(result.Instance)
+				else
+					selectedBlock = result.Instance
+					lastClickedBlock = result.Instance
+					highlight.Adornee = selectedBlock
+					highlight.Enabled = true
+
+					local position = selectedBlock.Position
+					positionLabel.Text = string.format("تم تحديد البلوكة: X %.0f | Y %.0f | Z %.0f", position.X, position.Y, position.Z)
+				end
+			else
+				lastClickedBlock = nil
+			end
+		end
+
+	elseif selectedTool.Value == "Delete" then
+		local result = getMouseRaycast()
+		if result then
+			deletePartEvent:FireServer(result.Instance)
+		end
+	end
+end)
