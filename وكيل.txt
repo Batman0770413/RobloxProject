@@ -1,0 +1,750 @@
+هلا اني عندي موقع اريد انشره على NETLIFY  بس مشكله موقعي كبير و مساحته  فوق 100 و فيه ذكاء اصطناعي يعني كود يخص ذكاء اصطناعي بس ماضفت فيه مفتاح و مااعرف اين  اضيف مفتاح في مكان امن رغم عندي اكثر من مفتاح
+
+
+إي تگدر تنشره على Netlify، وحتى إذا حجمه أكثر من 100 ميغابايت فالمشكلة الأساسية غالبًا مو حجم الموقع، وإنما مكان كود الذكاء الاصطناعي ومفتاح الـ API.
+
+المهم جدًا: لا تضع المفتاح داخل كود الواجهة الأمامية مثل React أو HTML أو JavaScript الذي يصل إلى المتصفح؛ لأن أي شخص يقدر يفتحه من Developer Tools ويستخرج المفتاح.
+
+الطريقة الصحيحة
+خلي الطلب إلى مزود الذكاء الاصطناعي يمر عبر Netlify Function:
+
+text
+
+
+المتصفح → Netlify Function → مزود الذكاء الاصطناعي
+وضع المفتاح داخل Environment Variables في Netlify.
+
+1. أضف المفتاح في Netlify
+من لوحة موقعك:
+
+افتح الموقع في Netlify.
+اذهب إلى: Site configuration → Environment variables
+اختر Add a variable.
+اكتب اسمًا مثل:
+text
+
+
+OPENAI_API_KEY
+ضع قيمة المفتاح.
+اجعل Scope يحتوي على Functions.
+لا تضع المفتاح في netlify.toml أو GitHub.
+بعد الحفظ أعد نشر الموقع، لأن تغييرات المتغيرات تُستخدم في عمليات النشر الجديدة. 
+docs.netlify.com
+1
+2. أنشئ Netlify Function
+ضع ملفًا مثل:
+
+text
+
+
+netlify/functions/ai.mjs
+ومحتواه، كمثال:
+
+javascript
+
+
+export default async (request) => {
+  try {
+    const { message } = await request.json();
+
+    if (!message) {
+      return new Response(
+        JSON.stringify({ error: "Message is required" }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" }
+        }
+      );
+    }
+
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "user",
+            content: message
+          }
+        ]
+      })
+    });
+
+    const data = await response.json();
+
+    return new Response(JSON.stringify(data), {
+      status: response.status,
+      headers: { "Content-Type": "application/json" }
+    });
+  } catch (error) {
+    return new Response(
+      JSON.stringify({ error: "Server error" }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" }
+      }
+    );
+  }
+};
+يتم الوصول إلى المتغير داخل Function بهذا الشكل:
+
+javascript
+
+
+process.env.OPENAI_API_KEY
+وهذا هو الأسلوب الموثق لاستخدام مفاتيح API مع Netlify Functions. 
+docs.netlify.com
+
+3. استدعِ الـ Function من موقعك
+بدل استدعاء OpenAI مباشرة من الواجهة، استخدم:
+
+javascript
+
+
+async function askAI(message) {
+  const response = await fetch("/.netlify/functions/ai", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ message })
+  });
+
+  return await response.json();
+}
+بهذا الشكل، الواجهة لا تعرف قيمة المفتاح أبدًا.
+
+إذا عندك أكثر من مفتاح
+استخدم أسماء مختلفة:
+
+text
+
+
+OPENAI_API_KEY
+ANTHROPIC_API_KEY
+GOOGLE_AI_API_KEY
+GROQ_API_KEY
+ثم استخدم كل مفتاح داخل Function المناسبة:
+
+javascript
+
+
+const openaiKey = process.env.OPENAI_API_KEY;
+const anthropicKey = process.env.ANTHROPIC_API_KEY;
+لا تحتاج تضع كل المفاتيح إذا ما تستخدمها. والأفضل أن يكون لكل مزود Function منفصلة، مثل:
+
+text
+
+
+netlify/functions/openai.mjs
+netlify/functions/anthropic.mjs
+netlify/functions/google-ai.mjs
+انتبه لهذه الأشياء
+لا ترفع ملف .env إلى GitHub.
+أضف هذا إلى .gitignore:
+text
+
+
+.env
+.env.*
+!.env.example
+لا تسمي متغير المفتاح باسم يبدأ بـ VITE_ أو NEXT_PUBLIC_ أو REACT_APP_؛ هذه الأسماء غالبًا تجعل القيمة تصل إلى المتصفح.
+لا تطبع المفتاح باستخدام console.log.
+إذا سبق ووضعت مفتاحًا داخل GitHub أو داخل كود منشور، اعتبره مكشوفًا وقم بإلغائه وإنشاء مفتاح جديد.
+أضف حماية للـ Function مثل تسجيل دخول، تحديد عدد الطلبات، أو rate limit؛ لأن أي شخص يستطيع إرسال طلبات إلى رابط Function إذا كان مكشوفًا.
+بالنسبة لحجم الموقع، ارفع المشروع من GitHub أو باستخدام Netlify CLI، وتأكد من عدم رفع مجلدات كبيرة غير ضرورية مثل:
+
+text
+
+
+node_modules
+.git
+.cache
+dist
+build
+أما ملفات النماذج الكبيرة أو الصور والفيديوهات، فالأفضل تخزينها في خدمة تخزين خارجية بدل وضعها داخل نشر Netlify.
+
+بس قبل البدئ ملف موقعي جاهز و كامل بس فيه لغات مختلفه مالت برمجه و كمان اريد الامان و موقع مخصص فقط لي انا
+
+
+تمام، إذا ملف الموقع جاهز وكامل وبداخله لغات برمجة متعددة، ماكو مشكلة. ما نحتاج نعيد بناءه من الصفر؛ نحتاج فقط نحدد:
+
+لغة أو إطار الواجهة: React / Vue / Next.js / HTML…
+لغة الخادم إن موجودة: Node.js / Python / PHP…
+مكان كود الذكاء الاصطناعي.
+هل المشروع يحتاج قاعدة بيانات أو تسجيل دخول.
+أمر التشغيل والبناء الموجود في package.json.
+الفكرة تكون هكذا:
+
+text
+
+
+ملفات موقعك الحالية
+        ↓
+Netlify يستضيف الواجهة
+        ↓
+Netlify Function أو Backend يستضيف كود الذكاء الاصطناعي
+        ↓
+مفتاح API محفوظ في Environment Variables
+إذا كان كود الذكاء الاصطناعي موجودًا داخل ملفات المتصفح، مثل:
+
+javascript
+
+
+fetch("https://api.example.com", {
+  headers: {
+    Authorization: "Bearer API_KEY_HERE"
+  }
+});
+فلازم ننقله إلى Function؛ لأن أي مفتاح داخل ملفات الواجهة يمكن استخراجه حتى لو كان الموقع خاصًا جزئيًا. Netlify نفسه يوصي باستخدام Serverless Function أو Edge Function للوصول إلى القيم الحساسة بدون كشفها للمستخدم. 
+docs.netlify.com
+
+جعل الموقع لك وحدك
+عندك خياران:
+
+الخيار الأفضل: Team login
+تفعّل حماية الموقع من:
+
+text
+
+
+Project configuration
+→ Access & security
+→ Visitor access
+→ Password Protection
+→ Team login protection
+وبذلك لا يدخل الموقع إلا حسابك الموجود ضمن فريق Netlify. هذا مناسب للموقع الداخلي أو الشخصي. 
+docs.netlify.com
+
+خيار كلمة مرور
+تضع كلمة مرور واحدة للموقع، وكل من يعرفها يستطيع الدخول:
+
+text
+
+
+Project configuration
+→ Access & security
+→ Visitor access
+→ Password Protection
+→ Basic password protection
+هذه الحماية تكون على مستوى الموقع كله، ويمكن اختيار All deploys حتى تشمل الموقع الأساسي والمعاينات. حسب توثيق Netlify، حماية كلمة المرور الجاهزة متاحة ضمن خطط Pro وما فوق، بينما توجد طريقة Basic Authentication عبر ملف _headers للخطط الأخرى لكنها أقل مرونة. 
+docs.netlify.com
+1
+
+لكن انتبه: كلمة مرور الموقع لا تحمي مفتاح الذكاء الاصطناعي إذا كان المفتاح مكتوبًا داخل JavaScript. حماية الموقع ومكان المفتاح موضوعان مختلفان.
+
+ما أحتاجه منك قبل إعداد الخطوات الدقيقة
+افتح مجلد المشروع وأرسل لي فقط أسماء الملفات والمجلدات، بدون أي مفاتيح، مثل:
+
+text
+
+
+package.json
+src/
+app/
+pages/
+api/
+server/
+netlify.toml
+.env.example
+vite.config.js
+next.config.js
+وإذا عندك ملف package.json، انسخ محتواه هنا بعد حذف أي مفاتيح أو كلمات مرور. كذلك قل لي هل تريد الموقع:
+
+يفتح لك أنت فقط بكلمة مرور؟
+أم يكون عامًا لكن الذكاء الاصطناعي محمي؟
+أم الاثنين معًا؟
+ولا ترسل أي مفتاح API هنا. إذا كانت المفاتيح موجودة سابقًا داخل الكود أو GitHub، قم بإلغائها وإنشاء مفاتيح جديدة.
+
+ترى مجهزها و ضايف له كلمه مرور موقعي طبعاً يعني ماتقدر تدخل للموقع الى تحط كلمه مرور و بقه احمي موقعي من الإختراق او واحد يستخدمه غيري و هذني سوالف 
+
+
+إي فهمت عليك. أنت تريد الموقع خاص إلك فقط، وكلمة المرور موجودة أصلًا. هذا جيد، لكن كلمة المرور وحدها ما تكفي لحماية الذكاء الاصطناعي والمفتاح من الاستهلاك أو الهجمات.
+
+سوِّ الحماية على عدة طبقات:
+
+خلِّ حماية الموقع مفعّلة على All deploys، مو فقط النسخة التجريبية؛ حتى لا يفتح أحد رابطًا قديمًا أو رابط Preview بدون حماية. Netlify يوفر حماية بكلمة مرور أو دخول بحساب Netlify، إضافة إلى قواعد Firewall وRate limiting. 
+docs.netlify.com
+1
+الأفضل تستخدم Team login بدل كلمة مرور مشتركة إذا الموقع إلك وحدك. بهذه الحالة الدخول يكون بحساب Netlify الخاص بك فقط. أما كلمة المرور العادية، فأي شخص يحصل عليها يستطيع الدخول. 
+docs.netlify.com
+مفتاح الذكاء الاصطناعي لا يكون داخل ملفات الموقع أبدًا. ضعه في:
+text
+
+
+Netlify → Project configuration → Environment variables
+مثل:
+text
+
+
+OPENAI_API_KEY
+وخلي كود الذكاء الاصطناعي داخل Netlify Function، وليس داخل JavaScript الذي ينزل إلى المتصفح.
+احمِ رابط الـ Function نفسه. لا تعتمد على كلمة مرور الموقع فقط؛ خلي الـ Function تتحقق من جلسة دخول أو رمز سري قبل تنفيذ الطلب. وإلا قد يستطيع شخص استدعاء رابط مثل:
+text
+
+
+/.netlify/functions/ai
+مباشرة، وربما يستهلك مفتاحك حتى لو واجهة الموقع محمية.
+أضف تحديدًا للطلبات:
+عدد محدود من طلبات الذكاء الاصطناعي خلال الدقيقة.
+حد أقصى لطول الرسالة.
+رفض الطلبات بدون جلسة صحيحة.
+عدم قبول روابط أو أوامر عشوائية من المستخدم إذا لم تكن ضرورية.
+عدم إظهار تفاصيل الأخطاء أو قيم المتغيرات.
+لا تضع المفاتيح في كل البيئات. المفتاح الحقيقي اجعله للإنتاج فقط، واستعمل مفتاحًا تجريبيًا منفصلًا للـ Preview إن احتجت. Netlify يوصي بحماية الأسرار واستخدام طبقات متعددة مثل HTTPS وSecurity Headers ومراقبة النشاط. 
+docs.netlify.com
+راجع المشروع قبل رفعه وابحث عن:
+text
+
+
+API_KEY
+SECRET
+TOKEN
+PASSWORD
+process.env
+import.meta.env
+إذا وجدت قيمة حقيقية مكتوبة مباشرة داخل الكود، احذفها وغيّر المفتاح، لأن المفتاح القديم يعتبر مكشوفًا.
+فعّل حماية إضافية إن كانت متاحة في خطتك مثل WAF وFirewall وRate limiting. Netlify يوفر حماية تلقائية من DDoS، لكن حماية التطبيق نفسه—مثل صلاحيات Function وتسريب المفاتيح—تحتاج إعدادًا داخل المشروع. 
+docs.netlify.com
+ملاحظة مهمة: إذا كانت كلمة المرور الحالية معمولة داخل كود الموقع نفسه، مثل شاشة تطلب كلمة مرور وتخزنها في JavaScript أو localStorage، فهذه ليست حماية حقيقية؛ أي شخص يستطيع تجاوزها من أدوات المتصفح. لازم تكون الحماية من Netlify نفسه أو من نظام تسجيل دخول حقيقي.
+
+التكوين المناسب لموقعك يكون:
+
+text
+
+
+Team login أو Password Protection من Netlify
+        +
+مفتاح API داخل Environment Variables
+        +
+AI داخل Netlify Function
+        +
+تحقق من الجلسة داخل Function
+        +
+Rate limiting
+        +
+Security headers
+بهذا الشكل يصير الموقع خاص إلك، ومفتاح الذكاء الاصطناعي ما يطلع للزائر، وحتى لو أحد عرف رابط الـ Function ما يقدر يستخدمه بسهولة على حسابك.
+
+المهم نبدي خطوة خطوة علمني شلون انشر موقعي في Netlify و نبدي بالخطوات التاليه منها مفاتيح و الامان و غيرها
+
+
+تمام، نمشي خطوة خطوة وما ننتقل للخطوة التالية إلا بعد ما تخلص الحالية.
+
+الخطوة الأولى: تجهيز نسخة آمنة من مشروعك
+قبل رفع الموقع إلى Netlify، لا ترفع أي مفتاح أو كلمة مرور داخل الملفات.
+
+افتح مجلد مشروعك وابحث عن أي ملفات مثل:
+
+text
+
+
+.env
+.env.local
+.env.production
+إذا موجودة، لا تحذفها الآن، لكن لا ترفعها إلى GitHub أو Netlify. افتحها وابحث فقط عن أسماء المتغيرات، مثل:
+
+text
+
+
+OPENAI_API_KEY=
+ANTHROPIC_API_KEY=
+GOOGLE_API_KEY=
+لا ترسل لي القيم الموجودة بعد علامة =، فقط أسماء المتغيرات.
+
+بعد ذلك، داخل مجلد المشروع أنشئ أو افتح ملف:
+
+text
+
+
+.gitignore
+وأضف داخله:
+
+text
+
+
+.env
+.env.*
+!.env.example
+node_modules
+dist
+build
+إذا كان مشروعك يستخدم Git، نفّذ هذا الأمر داخل مجلد المشروع للتأكد من عدم وجود ملفات حساسة مضافة:
+
+bash
+
+
+git status
+المطلوب الآن منك فقط:
+
+افتح مجلد الموقع.
+أرسل لي أسماء الملفات والمجلدات الرئيسية، مثل:
+text
+
+
+package.json
+src
+public
+app
+pages
+server
+api
+netlify.toml
+إذا عندك package.json، أرسل محتواه هنا بعد حذف أي مفاتيح أو كلمات مرور.
+لا ترسل:
+
+text
+
+
+.env
+ولا أي شيء يشبه:
+
+text
+
+
+sk-...
+AIza...
+API_KEY=...
+SECRET=...
+TOKEN=...
+وجود لغات برمجة متعددة ليس مشكلة؛ نحتاج أولًا معرفة نوع المشروع وأمر البناء. Netlify يحتاج عادةً معرفة أمر البناء ومجلد النشر، مثل npm run build ومجلد dist أو build، ويمكن ضبط هذه الإعدادات عند ربط المشروع. 
+docs.netlify.com
+
+COLAB_API_URL
+*******
+
+
+
+COLAB_MODEL
+*******
+
+
+
+DEEPSEEK_API_KEY
+*******
+
+
+
+GROQ_API_KEY
+*******
+
+
+
+PORT
+*******
+
+
+
+SAMBANOVA_API_KEY
+*******
+
+
+
+SECRET_KEY
+*******
+
+
+
+TOGETHER_API_KEY
+*******
+
+
+
+VITE_OPENROUTER_API_KEY
+*******
+
+
+
+VITE_SECRET_KEY
+*******  --------- تقريبا حاطهم داخل .gitignore
+
+ممتاز، أسماء المتغيرات توضّح أن مشروعك يحتوي على مفاتيح لخدمات متعددة. لكن عندك نقطتان مهمتان قبل الرفع:
+
+1. المتغيرات التي تبدأ بـ VITE_ غير آمنة للمفاتيح
+هذان الاسمان:
+
+text
+
+
+VITE_OPENROUTER_API_KEY
+VITE_SECRET_KEY
+في مشاريع Vite، أي متغير يبدأ بـ VITE_ قد يتم تضمينه داخل ملفات الواجهة النهائية، وبالتالي يستطيع الزائر رؤيته من المتصفح. لذلك:
+
+غيّر اسمها إلى:
+text
+
+
+OPENROUTER_API_KEY
+SECRET_KEY
+لكن مجرد تغيير الاسم لا يكفي؛ يجب أن يستخدمها الكود من داخل Backend أو Netlify Function، وليس مباشرة من كود الواجهة.
+إذا كان VITE_OPENROUTER_API_KEY مفتاحًا حقيقيًا واستُخدم سابقًا في موقع منشور، ألغِه وأنشئ مفتاحًا جديدًا.
+أما هذه المتغيرات فتبقى سرية أيضًا:
+
+text
+
+
+DEEPSEEK_API_KEY
+GROQ_API_KEY
+SAMBANOVA_API_KEY
+TOGETHER_API_KEY
+SECRET_KEY
+وهذه غالبًا ليست أسرارًا بحد ذاتها:
+
+text
+
+
+COLAB_API_URL
+COLAB_MODEL
+PORT
+لكن COLAB_API_URL قد يكشف عنوان خادمك، لذلك من الأفضل إبقاؤه داخل Environment Variables أيضًا.
+
+2. .gitignore يمنع الرفع الجديد فقط
+إذا كان ملف .env موجودًا داخل .gitignore فهذا جيد، لكن إذا سبق أن أضفته إلى Git أو GitHub فلن يكفي وضعه في .gitignore. يجب إزالة الملف من التتبع:
+
+bash
+
+
+git rm --cached .env
+git rm --cached .env.local
+git commit -m "Remove environment files"
+وإذا كانت المفاتيح الحقيقية سبق أن ظهرت في GitHub أو في نشر سابق، غيّرها من مواقع مزودي الخدمة، حتى لو حذفت الملف لاحقًا.
+
+الآن خلينا نكمل بدون كشف أي مفتاح. أرسل لي محتوى ملف .gitignore فقط، ثم محتوى package.json بعد إخفاء أي أسرار. نحتاج نعرف أمر البناء ومجلد النشر قبل ربط الموقع بـ Netlify.
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Railway specific
+.railway/
+
+# Data (user uploaded)
+data/*
+!data/.gitkeep
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Memory files
+/tmp/
+*.json.bak
+  و  -- {
+  "name": "vite-react-typescript-starter",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint .",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit -p tsconfig.app.json"
+  },
+  "dependencies": {
+    "jszip": "^3.10.1",
+    "lucide-react": "^1.23.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.9.1",
+    "@types/react": "^18.3.5",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "autoprefixer": "^10.4.18",
+    "eslint": "^9.9.1",
+    "eslint-plugin-react-hooks": "^5.1.0-rc.0",
+    "eslint-plugin-react-refresh": "^0.4.11",
+    "globals": "^15.9.0",
+    "postcss": "^8.4.35",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5.5.3",
+    "typescript-eslint": "^8.3.0",
+    "vite": "^5.4.2"
+  }
+}
+
+ممتاز، الآن عرفنا نوع مشروعك:
+
+المشروع React + Vite + TypeScript
+أمر البناء الصحيح:
+bash
+
+
+npm run build
+مجلد النشر الناتج سيكون:
+text
+
+
+dist
+ملف package.json لا يحتوي حاليًا على Backend أو Netlify Functions.
+وجود ملفات Python لا يعني أن Netlify سيشغلها تلقائيًا؛ Netlify سيبني الواجهة فقط، أما كود Python أو الذكاء الاصطناعي فنحتاج نستضيفه بطريقة منفصلة أو ننقله إلى Function مناسبة.
+تعديل مهم على `.gitignore
+عندك حاليًا:
+
+text
+
+
+.env
+.env.local
+.env.*.local
+أضف هذا السطر أيضًا:
+
+text
+
+
+.env.*
+ليصبح قسم المتغيرات هكذا:
+
+text
+
+
+# Environment variables
+.env
+.env.*
+!.env.example
+هذا يمنع رفع ملفات مثل:
+
+text
+
+
+.env.production
+.env.development
+.env.local
+ويسمح فقط برفع ملف آمن اسمه:
+
+text
+
+
+.env.example
+ويجب أن يحتوي على الأسماء فقط، بدون قيم:
+
+text
+
+
+COLAB_API_URL=
+COLAB_MODEL=
+DEEPSEEK_API_KEY=
+GROQ_API_KEY=
+PORT=
+SAMBANOVA_API_KEY=
+SECRET_KEY=
+TOGETHER_API_KEY=
+OPENROUTER_API_KEY=
+لاحظ أنني أزلت VITE_ من آخر اسمين؛ لأن مفاتيح API لا ينبغي أن تبدأ بـ VITE_.
+
+الآن نفّذ اختبار البناء محليًا
+داخل مجلد المشروع شغّل:
+
+bash
+
+
+npm install
+npm run build
+إذا نجح، سيظهر مجلد:
+
+text
+
+
+dist
+بعدها شغّل:
+
+bash
+
+
+npm run dev
+وافتح الرابط الذي يظهر لك، غالبًا:
+
+text
+
+
+http://localhost:5173
+اختبر الموقع، خصوصًا جزء الذكاء الاصطناعي.
+
+الخطوة المهمة التالية
+نحتاج نعرف هل الواجهة تستدعي مزودي الذكاء الاصطناعي مباشرة أم تستدعي Backend.
+
+ابحث داخل مجلد src عن هذه الكلمات:
+
+text
+
+
+VITE_
+fetch(
+axios
+OPENROUTER
+DEEPSEEK
+GROQ
+SAMBANOVA
+TOGETHER
+COLAB
+إذا وجدت شيئًا مثل:
+
+javascript
+
+
+import.meta.env.VITE_OPENROUTER_API_KEY
+أو:
+
+javascript
+
+
+fetch("https://api.openai.com/...")
+فهذا يعني أن المفتاح أو الطلب موجود داخل الواجهة ويجب تأمينه قبل النشر.
+
+أرسل لي فقط اسم الملف والمسار والأسطر التي تحتوي على هذه الكلمات، مثل:
+
+text
+
+
+src/services/ai.ts
+src/lib/api.ts
+src/components/Chat.tsx
+ولا ترسل قيم المفاتيح. بهذه الخطوة نحدد أين ننقل كود الذكاء الاصطناعي قبل رفع الموقع إلى Netlify.
