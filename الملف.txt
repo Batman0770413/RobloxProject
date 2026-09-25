@@ -1,494 +1,1286 @@
-local Players = game:GetService("Players")
-local UserInputService = game:GetService("UserInputService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
-
-local player = Players.LocalPlayer
-local camera = workspace.CurrentCamera
-
-local factoriesFolder = workspace:WaitForChild("Factories")
-
-local function getPlayerFactory()
-	for _, factory in ipairs(factoriesFolder:GetChildren()) do
-		if factory:GetAttribute("OwnerUserId") == player.UserId then
-			return factory
-		end
-	end
-	return nil
-end
-
-local gui = script.Parent
-local selectedTool = gui:WaitForChild("SelectedTool")
-
-local placePartEvent = ReplicatedStorage:WaitForChild("PlacePart")
-local deletePartEvent = ReplicatedStorage:WaitForChild("DeletePart")
-local transformPartEvent = ReplicatedStorage:WaitForChild("TransformPart")
-
-local GRID_SIZE = 4
-local BLOCK_SIZE = Vector3.new(4, 4, 4)
-local MIN_SIZE = Vector3.new(1, 1, 1)
-local MAX_SIZE = Vector3.new(50, 50, 50)
-
-local previewBlock = Instance.new("Part")
-previewBlock.Name = "BuildPreview"
-previewBlock.Size = BLOCK_SIZE
-previewBlock.Anchored = true
-previewBlock.CanCollide = false
-previewBlock.CanTouch = false
-previewBlock.CanQuery = false
-previewBlock.Transparency = 0.5
-previewBlock.Material = Enum.Material.ForceField
-previewBlock.Color = Color3.fromRGB(0, 255, 100)
-previewBlock.Parent = workspace
-
-local currentPosition = nil
-local currentTarget = nil
-local currentNormal = nil
-
-local selectedBlock = nil
-local lastClickedBlock = nil
-
-local highlight = Instance.new("Highlight")
-highlight.Name = "SelectedBlockHighlight"
-highlight.FillColor = Color3.fromRGB(255, 200, 0)
-highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-highlight.FillTransparency = 0.7
-highlight.OutlineTransparency = 0
-highlight.Enabled = false
-highlight.Parent = workspace
-
-local positionLabel = gui:WaitForChild("BuildPanel"):WaitForChild("PositionLabel")
-
--- =============================================
--- TransformSystem
--- =============================================
-
-local transformPanel = nil
-local transformTextBoxes = {}
-local originalValues = nil
-
-local function snap(value)
-	return math.floor((value / GRID_SIZE) + 0.5) * GRID_SIZE
-end
-
-local function snapPosition(position)
-	return Vector3.new(
-		snap(position.X),
-		position.Y,
-		snap(position.Z)
-	)
-end
-
-local function createButton(name, text, parent, position, size, color)
-	local btn = Instance.new("TextButton")
-	btn.Name = name
-	btn.Text = text
-	btn.Parent = parent
-	btn.Position = position
-	btn.Size = size
-	btn.BackgroundColor3 = color or Color3.fromRGB(45, 45, 45)
-	btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-	btn.Font = Enum.Font.SourceSansBold
-	btn.TextSize = 14
-	btn.BorderSizePixel = 0
-	btn.AutoButtonColor = true
-	return btn
-end
-
-local function createLabel(name, text, parent, position, size)
-	local lbl = Instance.new("TextLabel")
-	lbl.Name = name
-	lbl.Text = text
-	lbl.Parent = parent
-	lbl.Position = position
-	lbl.Size = size
-	lbl.BackgroundTransparency = 1
-	lbl.TextColor3 = Color3.fromRGB(200, 200, 200)
-	lbl.Font = Enum.Font.SourceSansBold
-	lbl.TextSize = 13
-	lbl.TextXAlignment = Enum.TextXAlignment.Left
-	return lbl
-end
-
-local function createTextBox(name, parent, position, size, defaultText)
-	local tb = Instance.new("TextBox")
-	tb.Name = name
-	tb.Parent = parent
-	tb.Position = position
-	tb.Size = size
-	tb.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-	tb.TextColor3 = Color3.fromRGB(255, 255, 255)
-	tb.Font = Enum.Font.SourceSans
-	tb.TextSize = 13
-	tb.Text = defaultText or "0"
-	tb.PlaceholderText = "0"
-	tb.ClearTextOnFocus = false
-	tb.BorderSizePixel = 0
-	return tb
-end
-
-local function createTransformPanel()
-	local panel = Instance.new("Frame")
-	panel.Name = "TransformPanel"
-	panel.Parent = gui
-	panel.Size = UDim2.new(0, 280, 0, 420)
-	panel.Position = UDim2.new(0.5, -140, 0.5, -210)
-	panel.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-	panel.BorderSizePixel = 0
-	panel.Visible = false
-
-	-- عنوان
-	local title = createLabel("Title", "تعديل البلوكة", panel, UDim2.new(0, 10, 0, 5), UDim2.new(0, 260, 0, 25))
-	title.TextSize = 18
-	title.TextColor3 = Color3.fromRGB(255, 255, 255)
-
-	-- زر إغلاق
-	local closeBtn = createButton("CloseBtn", "X", panel, UDim2.new(1, -30, 0, 5), UDim2.new(0, 25, 0, 25), Color3.fromRGB(180, 40, 40))
-
-	-- Position Section
-	createLabel("PosLabel", "Position (X / Y / Z)", panel, UDim2.new(0, 10, 0, 40), UDim2.new(0, 260, 0, 20))
-	transformTextBoxes.PosX = createTextBox("PosX", panel, UDim2.new(0, 10, 0, 65), UDim2.new(0, 80, 0, 25), "0")
-	transformTextBoxes.PosY = createTextBox("PosY", panel, UDim2.new(0, 100, 0, 65), UDim2.new(0, 80, 0, 25), "0")
-	transformTextBoxes.PosZ = createTextBox("PosZ", panel, UDim2.new(0, 190, 0, 65), UDim2.new(0, 80, 0, 25), "0")
-
-	-- Rotation Section
-	createLabel("RotLabel", "Rotation (X / Y / Z)", panel, UDim2.new(0, 10, 0, 100), UDim2.new(0, 260, 0, 20))
-	transformTextBoxes.RotX = createTextBox("RotX", panel, UDim2.new(0, 10, 0, 125), UDim2.new(0, 80, 0, 25), "0")
-	transformTextBoxes.RotY = createTextBox("RotY", panel, UDim2.new(0, 100, 0, 125), UDim2.new(0, 80, 0, 25), "0")
-	transformTextBoxes.RotZ = createTextBox("RotZ", panel, UDim2.new(0, 190, 0, 125), UDim2.new(0, 80, 0, 25), "0")
-
-	-- Size Section
-	createLabel("SizeLabel", "Size (X / Y / Z)", panel, UDim2.new(0, 10, 0, 160), UDim2.new(0, 260, 0, 20))
-	transformTextBoxes.SizeX = createTextBox("SizeX", panel, UDim2.new(0, 10, 0, 185), UDim2.new(0, 80, 0, 25), "4")
-	transformTextBoxes.SizeY = createTextBox("SizeY", panel, UDim2.new(0, 100, 0, 185), UDim2.new(0, 80, 0, 25), "4")
-	transformTextBoxes.SizeZ = createTextBox("SizeZ", panel, UDim2.new(0, 190, 0, 185), UDim2.new(0, 80, 0, 25), "4")
-
-	-- Move Buttons
-	createLabel("MoveLabel", "تحريك سريع", panel, UDim2.new(0, 10, 0, 220), UDim2.new(0, 260, 0, 20))
-	createButton("MoveXPlus", "X+", panel, UDim2.new(0, 10, 0, 245), UDim2.new(0, 80, 0, 25), Color3.fromRGB(40, 80, 120))
-	createButton("MoveXMinus", "X-", panel, UDim2.new(0, 100, 0, 245), UDim2.new(0, 80, 0, 25), Color3.fromRGB(40, 80, 120))
-	createButton("MoveYPlus", "Y+", panel, UDim2.new(0, 190, 0, 245), UDim2.new(0, 80, 0, 25), Color3.fromRGB(40, 80, 120))
-	createButton("MoveYMinus", "Y-", panel, UDim2.new(0, 10, 0, 275), UDim2.new(0, 80, 0, 25), Color3.fromRGB(40, 80, 120))
-	createButton("MoveZPlus", "Z+", panel, UDim2.new(0, 100, 0, 275), UDim2.new(0, 80, 0, 25), Color3.fromRGB(40, 80, 120))
-	createButton("MoveZMinus", "Z-", panel, UDim2.new(0, 190, 0, 275), UDim2.new(0, 80, 0, 25), Color3.fromRGB(40, 80, 120))
-
-	-- Rotate Buttons
-	createLabel("RotateLabel", "تدوير 90°", panel, UDim2.new(0, 10, 0, 310), UDim2.new(0, 260, 0, 20))
-	createButton("RotXBtn", "Rotate X", panel, UDim2.new(0, 10, 0, 335), UDim2.new(0, 80, 0, 25), Color3.fromRGB(120, 80, 40))
-	createButton("RotYBtn", "Rotate Y", panel, UDim2.new(0, 100, 0, 335), UDim2.new(0, 80, 0, 25), Color3.fromRGB(120, 80, 40))
-	createButton("RotZBtn", "Rotate Z", panel, UDim2.new(0, 190, 0, 335), UDim2.new(0, 80, 0, 25), Color3.fromRGB(120, 80, 40))
-
-	-- Scale Buttons
-	createLabel("ScaleLabel", "تكبير / تصغير", panel, UDim2.new(0, 10, 0, 370), UDim2.new(0, 260, 0, 20))
-	createButton("ScalePlus", "Scale +", panel, UDim2.new(0, 10, 0, 395), UDim2.new(0, 130, 0, 25), Color3.fromRGB(40, 120, 40))
-	createButton("ScaleMinus", "Scale -", panel, UDim2.new(0, 150, 0, 395), UDim2.new(0, 130, 0, 25), Color3.fromRGB(120, 40, 40))
-
-	-- Action Buttons (Apply / Cancel / Reset)
-	createButton("ApplyBtn", "تطبيق", panel, UDim2.new(0, 10, 0, 430), UDim2.new(0, 80, 0, 30), Color3.fromRGB(40, 140, 60))
-	createButton("CancelBtn", "إلغاء", panel, UDim2.new(0, 100, 0, 430), UDim2.new(0, 80, 0, 30), Color3.fromRGB(140, 40, 40))
-	createButton("ResetBtn", "إعادة", panel, UDim2.new(0, 190, 0, 430), UDim2.new(0, 80, 0, 30), Color3.fromRGB(100, 100, 40))
-
-	-- تكبير اللوحة لتسع الأزرار
-	panel.Size = UDim2.new(0, 280, 0, 470)
-
-	return panel
-end
-
-local function updateTextBoxes(pos, rot, size)
-	transformTextBoxes.PosX.Text = string.format("%.1f", pos.X)
-	transformTextBoxes.PosY.Text = string.format("%.1f", pos.Y)
-	transformTextBoxes.PosZ.Text = string.format("%.1f", pos.Z)
-	transformTextBoxes.RotX.Text = string.format("%.0f", rot.X)
-	transformTextBoxes.RotY.Text = string.format("%.0f", rot.Y)
-	transformTextBoxes.RotZ.Text = string.format("%.0f", rot.Z)
-	transformTextBoxes.SizeX.Text = string.format("%.1f", size.X)
-	transformTextBoxes.SizeY.Text = string.format("%.1f", size.Y)
-	transformTextBoxes.SizeZ.Text = string.format("%.1f", size.Z)
-end
-
-local function readTextBoxes()
-	local function num(text)
-		local n = tonumber(text)
-		return n or 0
-	end
-
-	local pos = Vector3.new(
-		num(transformTextBoxes.PosX.Text),
-		num(transformTextBoxes.PosY.Text),
-		num(transformTextBoxes.PosZ.Text)
-	)
-	local rot = Vector3.new(
-		num(transformTextBoxes.RotX.Text),
-		num(transformTextBoxes.RotY.Text),
-		num(transformTextBoxes.RotZ.Text)
-	)
-	local size = Vector3.new(
-		math.clamp(num(transformTextBoxes.SizeX.Text), MIN_SIZE.X, MAX_SIZE.X),
-		math.clamp(num(transformTextBoxes.SizeY.Text), MIN_SIZE.Y, MAX_SIZE.Y),
-		math.clamp(num(transformTextBoxes.SizeZ.Text), MIN_SIZE.Z, MAX_SIZE.Z)
-	)
-
-	return pos, rot, size
-end
-
-local function showTransformPanel(block)
-	if not block or not block:IsA("BasePart") then return end
-
-	originalValues = {
-		Position = block.Position,
-		Rotation = block.Orientation,
-		Size = block.Size
-	}
-
-	updateTextBoxes(block.Position, block.Orientation, block.Size)
-	transformPanel.Visible = true
-end
-
-local function hideTransformPanel()
-	transformPanel.Visible = false
-end
-
-local function applyTransform()
-	if not selectedBlock or not selectedBlock:IsDescendantOf(workspace) then
-		hideTransformPanel()
-		return
-	end
-
-	local pos, rot, size = readTextBoxes()
-
-	transformPartEvent:FireServer(selectedBlock, pos, rot, size)
-	hideTransformPanel()
-end
-
-local function cancelTransform()
-	if originalValues and selectedBlock then
-		updateTextBoxes(originalValues.Position, originalValues.Rotation, originalValues.Size)
-	end
-	hideTransformPanel()
-end
-
-local function resetTransform()
-	if originalValues then
-		updateTextBoxes(originalValues.Position, originalValues.Rotation, originalValues.Size)
-	end
-end
-
-local function quickMove(axis, direction)
-	local pos, rot, size = readTextBoxes()
-	if axis == "X" then
-		pos = Vector3.new(pos.X + direction * GRID_SIZE, pos.Y, pos.Z)
-	elseif axis == "Y" then
-		pos = Vector3.new(pos.X, pos.Y + direction * GRID_SIZE, pos.Z)
-	elseif axis == "Z" then
-		pos = Vector3.new(pos.X, pos.Y, pos.Z + direction * GRID_SIZE)
-	end
-	updateTextBoxes(pos, rot, size)
-end
-
-local function quickRotate(axis)
-	local pos, rot, size = readTextBoxes()
-	if axis == "X" then
-		rot = Vector3.new(rot.X + 90, rot.Y, rot.Z)
-	elseif axis == "Y" then
-		rot = Vector3.new(rot.X, rot.Y + 90, rot.Z)
-	elseif axis == "Z" then
-		rot = Vector3.new(rot.X, rot.Y, rot.Z + 90)
-	end
-	updateTextBoxes(pos, rot, size)
-end
-
-local function quickScale(direction)
-	local pos, rot, size = readTextBoxes()
-	local delta = direction * 1
-	size = Vector3.new(
-		math.clamp(size.X + delta, MIN_SIZE.X, MAX_SIZE.X),
-		math.clamp(size.Y + delta, MIN_SIZE.Y, MAX_SIZE.Y),
-		math.clamp(size.Z + delta, MIN_SIZE.Z, MAX_SIZE.Z)
-	)
-	updateTextBoxes(pos, rot, size)
-end
-
--- إنشاء اللوحة
-transformPanel = createTransformPanel()
-
--- ربط الأزرار
-transformPanel.CloseBtn.Activated:Connect(function()
-	cancelTransform()
-end)
-
-transformPanel.ApplyBtn.Activated:Connect(applyTransform)
-transformPanel.CancelBtn.Activated:Connect(cancelTransform)
-transformPanel.ResetBtn.Activated:Connect(resetTransform)
-
-transformPanel.MoveXPlus.Activated:Connect(function() quickMove("X", 1) end)
-transformPanel.MoveXMinus.Activated:Connect(function() quickMove("X", -1) end)
-transformPanel.MoveYPlus.Activated:Connect(function() quickMove("Y", 1) end)
-transformPanel.MoveYMinus.Activated:Connect(function() quickMove("Y", -1) end)
-transformPanel.MoveZPlus.Activated:Connect(function() quickMove("Z", 1) end)
-transformPanel.MoveZMinus.Activated:Connect(function() quickMove("Z", -1) end)
-
-transformPanel.RotXBtn.Activated:Connect(function() quickRotate("X") end)
-transformPanel.RotYBtn.Activated:Connect(function() quickRotate("Y") end)
-transformPanel.RotZBtn.Activated:Connect(function() quickRotate("Z") end)
-
-transformPanel.ScalePlus.Activated:Connect(function() quickScale(1) end)
-transformPanel.ScaleMinus.Activated:Connect(function() quickScale(-1) end)
-
--- =============================================
--- Raycast & Build System
--- =============================================
-
-local function getMouseRaycast()
-	local factory = getPlayerFactory()
-	if not factory then return nil end
-
-	local mouseLocation = UserInputService:GetMouseLocation()
-	local ray = camera:ViewportPointToRay(mouseLocation.X, mouseLocation.Y)
-
-	local buildArea = factory:FindFirstChild("BuildArea")
-	local playerBuilds = factory:FindFirstChild("PlayerBuilds")
-
-	if not buildArea or not playerBuilds then return nil end
-
-	local raycastParams = RaycastParams.new()
-	raycastParams.FilterType = Enum.RaycastFilterType.Include
-	raycastParams.FilterDescendantsInstances = { buildArea, playerBuilds }
-
-	return workspace:Raycast(ray.Origin, ray.Direction * 1000, raycastParams)
-end
-
-local function getBuildPosition(result, buildArea)
-	local target = result.Instance
-	local normal = result.Normal
-	local hitPosition = result.Position
-
-	if target.Name == "BuildArea" then
-		local topY = target.Position.Y + target.Size.Y / 2
-		local blockCenterY = topY + BLOCK_SIZE.Y / 2
-		return Vector3.new(snap(hitPosition.X), blockCenterY, snap(hitPosition.Z))
-	end
-
-	local position = hitPosition + Vector3.new(
-		normal.X * BLOCK_SIZE.X / 2,
-		normal.Y * BLOCK_SIZE.Y / 2,
-		normal.Z * BLOCK_SIZE.Z / 2
-	)
-
-	local topY = buildArea.Position.Y + buildArea.Size.Y / 2
-	local baseY = topY + BLOCK_SIZE.Y / 2
-	local yOffset = position.Y - baseY
-	local snappedY = baseY + math.floor(yOffset / BLOCK_SIZE.Y + 0.5) * BLOCK_SIZE.Y
-
-	return Vector3.new(snap(position.X), snappedY, snap(position.Z))
-end
-
-RunService.RenderStepped:Connect(function()
-	local factory = getPlayerFactory()
-
-	if not factory then
-		previewBlock.Transparency = 1
-		highlight.Enabled = false
-		positionLabel.Text = "لم يتم العثور على مصنعك"
-		currentPosition = nil
-		currentTarget = nil
-		currentNormal = nil
-		return
-	end
-
-	local result = getMouseRaycast()
-
-	if selectedTool.Value == "Block" then
-		highlight.Enabled = false
-
-		if not result then
-			previewBlock.Transparency = 1
-			currentPosition = nil
-			currentTarget = nil
-			currentNormal = nil
-			positionLabel.Text = "وجّه المؤشر إلى منطقة البناء"
-			return
-		end
-
-		local buildArea = factory:FindFirstChild("BuildArea")
-		if not buildArea then
-			previewBlock.Transparency = 1
-			return
-		end
-
-		local buildPosition = getBuildPosition(result, buildArea)
-		currentPosition = buildPosition
-		currentTarget = result.Instance
-		currentNormal = result.Normal
-
-		previewBlock.Position = buildPosition
-		previewBlock.Transparency = 0.5
-
-		positionLabel.Text = string.format("مكان البناء: X %.0f | Y %.0f | Z %.0f", buildPosition.X, buildPosition.Y, buildPosition.Z)
-
-	elseif selectedTool.Value == "Select" then
-		previewBlock.Transparency = 1
-
-		local playerBuilds = factory:FindFirstChild("PlayerBuilds")
-
-		if result and playerBuilds and result.Instance:IsDescendantOf(playerBuilds) then
-			selectedBlock = result.Instance
-			highlight.Adornee = selectedBlock
-			highlight.Enabled = true
-
-			local pos = selectedBlock.Position
-			positionLabel.Text = string.format("البلوك المحدد: X %.0f | Y %.0f | Z %.0f", pos.X, pos.Y, pos.Z)
-		else
-			selectedBlock = nil
-			highlight.Adornee = nil
-			highlight.Enabled = false
-			positionLabel.Text = "مرّر المؤشر فوق بلوكة من بنائك"
-		end
-
-	else
-		previewBlock.Transparency = 1
-		highlight.Enabled = false
-		selectedBlock = nil
-		positionLabel.Text = "اختر أداة"
-	end
-end)
-
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-	if gameProcessed then return end
-	if input.UserInputType ~= Enum.UserInputType.MouseButton1 then return end
-
-	if selectedTool.Value == "Block" then
-		if currentPosition then
-			placePartEvent:FireServer("Block", currentPosition, currentTarget, currentNormal)
-		end
-
-	elseif selectedTool.Value == "Select" then
-		local result = getMouseRaycast()
-		if result then
-			local factory = getPlayerFactory()
-			local playerBuilds = factory and factory:FindFirstChild("PlayerBuilds")
-
-			if playerBuilds and result.Instance:IsDescendantOf(playerBuilds) then
-				-- النقرة الثانية على نفس البلوك تفتح TransformPanel
-				if lastClickedBlock == result.Instance and selectedBlock == result.Instance then
-					showTransformPanel(result.Instance)
-				else
-					selectedBlock = result.Instance
-					lastClickedBlock = result.Instance
-					highlight.Adornee = selectedBlock
-					highlight.Enabled = true
-
-					local position = selectedBlock.Position
-					positionLabel.Text = string.format("تم تحديد البلوكة: X %.0f | Y %.0f | Z %.0f", position.X, position.Y, position.Z)
-				end
-			else
-				lastClickedBlock = nil
-			end
-		end
-
-	elseif selectedTool.Value == "Delete" then
-		local result = getMouseRaycast()
-		if result then
-			deletePartEvent:FireServer(result.Instance)
-		end
-	end
-end)
+هلا جاي اسوي ماب باركور و خلفك اكو وحش يلاحقك و لازم تكون سريع حتى ما يلزمك الوحش و تموت و ترجع للبدايه او spawn ف اني طلبت من ذكاء اصطناعي مالت روبلوكس يسويلي البناء هو انت في ممر شوي ضيق وكأنك في معمل متدمر و اضواء حمراء و اشضواء خفيفه و اضواء معطله بس هو سواها صح بس خربانه اكو بلوكات زايده مالها فايده و اكو اخطاء بس ماكو باركور هو سوة طريق مستقيم و عدل و سوة وحش بدون انميشن بس تنقلات و كان خربان يعني انت و حظك اذا قتلك لان حتى هو خربان في تحديدك و الذكاء الاصطناعي سوة spawn point و مانحتاجها احنه نريد لازم الاعب يكون سريع و يكمل مراحل دون موت و الوحش مالتك محد يشوفه بس انت و يقتلك بس انت و اذا دخل لاعب ثاني هم عنده نفس الوحش يشوفه بس هو و يقتله بس هو و اريد المكان الي هم فيها شوي واسع و الارض تحتهم اختفى مجرد مثل ضلام عميق تحت او حفره كبيرة مضلمه و من تسقط عليها تموت و ترجع لنقطه البدايه و الوحش يختفي و من تطلع من spawn في مسافه معينه الوحش يطلع و يلحق وراك و انت تركض و تقفز في الاغراض العائمه بلوكات او اجهزة و هذني الاشياء و لازم تجمع مفاتيح و عملات و تكمل طريقك بسرعه بس مااعرف شلون اخلي الاعب سريع و اماكن المهام و مفاتيح راح اخلي لك باقي الافكار بس ها اكو شي عجبني سوا هذا ذكاء اصطناعي roblox studio انو سوة ممرات و فيها ابواب و الفكرة حلوة انو تخلي المفاتيح تفتح هذني الابواب و لازم اكو عقبات تبطئك و الابواب مثل ابواب الكترونيه تنفتح عن طريق انميشن او تأثيرات و تأثيرات كهرباء و غيرها ف اريد اممر شوي واسع و الوحش شبه بطيء و سريع و يعتمد باقي على لاعب عقبات باركور و قفزات و تجنب العقبات و غيرها
+
+
+إي فهمت فكرتك. أنت تريد ماب رعب وباركور سريع داخل معمل متدمر، واللاعب يهرب من وحش يلاحقه، مع مفاتيح وأبواب إلكترونية وعقبات وسقوط في حفرة مظلمة. هذا نص مرتب تقدر تنسخه وتعطيه لذكاء Roblox Studio:
+
+text
+
+
+أنشئ خريطة Roblox من نوع Horror Parkour Chase داخل معمل مهجور ومدمر.
+
+المتطلبات العامة:
+- لا تجعل الطريق مستقيماً أو فارغاً.
+- صمّم الممرات بشكل متعرج مع مناطق واسعة ومناطق ضيقة.
+- أضف مسارات باركور واضحة تحتاج إلى الجري والقفز وتجنب العقبات.
+- اجعل البيئة تبدو كمعمل مدمر:
+  - جدران متكسرة.
+  - أنابيب وأسلاك مكشوفة.
+  - أجهزة مختبر مدمرة.
+  - صناديق وحواجز.
+  - أضواء حمراء متقطعة.
+  - أضواء ضعيفة وبعض المصابيح المعطلة.
+  - دخان خفيف وشرر كهربائي.
+- احذف جميع البلوكات الزائدة التي لا تخدم التصميم.
+- لا تضف Spawn Points متكررة داخل المراحل؛ استخدم نقطة بداية واحدة فقط في بداية الماب.
+
+نظام اللاعب:
+- اجعل سرعة اللاعب أعلى من السرعة العادية حتى تكون اللعبة سريعة ومتوترة.
+- استخدم سرعة مناسبة للباركور، مثلاً WalkSpeed بين 20 و24.
+- اجعل القفز مريحاً، لكن لا تجعل اللاعب يقفز فوق كل شيء بسهولة.
+- أضف عقبات تحتاج توقيتاً جيداً مثل:
+  - منصات عائمة.
+  - أجهزة مائلة.
+  - أنابيب يجب القفز فوقها.
+  - أرضيات كهربائية.
+  - مكابس تتحرك من الجدران.
+  - أبواب تغلق وتفتح.
+  - أجزاء من الأرض تنهار.
+  - حواجز دوارة أو متحركة.
+- إذا سقط اللاعب في الحفرة أو اصطدم بعقبة قاتلة، يموت ويرجع إلى نقطة بداية المرحلة.
+
+الحفر والمناطق الساقطة:
+- لا تضع أرضية عادية تحت مناطق الباركور.
+- اجعل أسفلها ظلاماً عميقاً أو حفرة كبيرة غير واضحة النهاية.
+- أي لاعب يسقط داخل الحفرة يموت فوراً.
+- أضف مؤثر ضباب أو ظلام أسفل الخريطة حتى لا تظهر أرضية خفية.
+- تأكد من عدم وجود Parts مخفية تمنع السقوط أو تجعل اللاعب يعلق.
+
+نظام الوحش:
+- أضف وحشاً مخيفاً بتصميم مناسب للمعمل، مع أنميشن للمشي والجري والهجوم.
+- لا تجعل الوحش يظهر فوراً من بداية اللعب.
+- عندما يبتعد اللاعب مسافة معينة عن البداية، يظهر الوحش خلفه ويبدأ بمطاردته.
+- اجعل الوحش أبطأ قليلاً من اللاعب، حتى يستطيع اللاعب النجاة إذا لعب بسرعة ونجح في الباركور.
+- لا تجعل الوحش يقتل اللاعب بسبب اصطدام عشوائي أو تحديد خاطئ.
+- استخدم منطقة قتل واضحة حول الوحش، مثل مسافة 3 إلى 4 studs.
+- إذا لمس الوحش اللاعب أو دخل اللاعب داخل منطقة الهجوم، يموت اللاعب ويرجع إلى بداية المرحلة.
+- عند موت اللاعب، أوقف مطاردة الوحش واحذفه أو أعده إلى مكانه، ثم اجعله يظهر من جديد عند بدء المحاولة التالية.
+- يجب أن يكون لكل لاعب وحشه الخاص:
+  - اللاعب الأول يرى وحشه فقط.
+  - الوحش يطارد اللاعب الأول فقط.
+  - اللاعب الثاني يحصل على وحش منفصل يراه هو فقط.
+  - لا يستطيع وحش لاعب قتل لاعب آخر.
+- إذا كان إنشاء وحش محلي لكل لاعب ضرورياً، اجعل حركة الوحش وتأثيراته Local لكل لاعب، لكن اجعل التحقق من الموت آمناً ولا تسمح باستغلال النظام.
+
+المفاتيح والعملات:
+- وزّع العملات في أماكن اختيارية وخطيرة لتشجيع اللاعب على المخاطرة.
+- ضع مفاتيح في أماكن تحتاج باركور أو طريقاً جانبياً.
+- لا تجعل المفاتيح ظاهرة دائماً؛ استخدم إضاءة أو وميض خفيف يدل عليها.
+- عند جمع المفتاح، يختفي من الخريطة ويضاف إلى قائمة اللاعب.
+- اجعل كل مفتاح مرتبطاً بباب محدد.
+- لا تسمح للاعب بفتح الباب الخطأ بالمفتاح.
+- العملات يمكن استخدامها لاحقاً للشراء أو تسجيل النقاط.
+
+الأبواب الإلكترونية:
+- أضف أبواباً إلكترونية مغلقة بين أجزاء الماب.
+- الباب لا يفتح إلا بعد جمع المفتاح الصحيح.
+- عند استخدام المفتاح:
+  - شغّل صوت فتح إلكتروني.
+  - أضف شرراً كهربائياً خفيفاً.
+  - شغّل إضاءة خضراء أو زرقاء.
+  - افتح الباب بأنميشن سلس، وليس بالاختفاء المفاجئ.
+- إذا لم يملك اللاعب المفتاح، اعرض رسالة مثل:
+  "تحتاج إلى المفتاح الأحمر."
+- اجعل بعض الأبواب تفتح ببطء حتى يضطر اللاعب إلى الاستمرار بالركض قبل أن يصل الوحش.
+
+تصميم المراحل:
+- المرحلة الأولى: ممر تعليمي قصير لتعليم اللاعب الجري والقفز وجمع أول مفتاح.
+- المرحلة الثانية: ممرات أوسع، منصات عائمة، حفرة مظلمة، وأبواب كهربائية.
+- المرحلة الثالثة: عقبات أسرع، أرضيات كهربائية، أبواب تغلق خلف اللاعب، ومطاردة أطول.
+- اجعل كل مرحلة تحتوي على:
+  - مسار رئيسي.
+  - طريق جانبي اختياري للعملات.
+  - مفتاح واحد أو أكثر.
+  - باب إلكتروني.
+  - نقطة نهاية واضحة.
+- لا تضع Checkpoint في منتصف المرحلة إذا كانت الفكرة أن اللاعب يعيد المحاولة من البداية بعد الموت.
+- اجعل نقطة الـ Spawn الأساسية في بداية الماب فقط.
+
+المؤثرات:
+- موسيقى توتر تبدأ بهدوء ثم تزداد عند ظهور الوحش.
+- صوت إنذار عند اقتراب الوحش.
+- اهتزاز خفيف أو تأثير شاشة عند الهجوم.
+- أصوات خطوات الوحش تكون مسموعة من مسافة، لكن لا تكشف مكانه بالكامل.
+- أضف أصوات كهرباء، أبواب، إنذارات، وانفجارات بعيدة.
+- استخدم إضاءة حمراء خافتة، مع مناطق مظلمة لكن لا تجعل اللعب مستحيلاً.
+- أضف ضباباً خفيفاً حتى يكون المكان مخيفاً، مع الحفاظ على رؤية العقبات بشكل عادل.
+
+اختبر الخريطة قبل إنهائها:
+- تأكد أن كل قفزة ممكنة من دون أخطاء.
+- تأكد أن الوحش لا يعلق بالجدران أو يتحرك عشوائياً.
+- تأكد أن الوحش لا يقتل اللاعب من مسافة بعيدة.
+- تأكد أن كل لاعب يملك وحشه الخاص.
+- تأكد أن سقوط اللاعب في الحفرة يؤدي إلى الموت والعودة للبداية.
+- تأكد أن المفاتيح تفتح الأبواب الصحيحة فقط.
+- تأكد أن اللاعب يستطيع الهرب إذا كان سريعاً وينفذ الباركور بشكل صحيح.
+- لا تضف Parts أو مجسمات زائدة بلا فائدة.
+الأهم عند تنفيذ الوحش: لا تعتمد على أن الوحش يمشي عشوائياً خلف اللاعب. استخدم نظام حالات بسيط: Idle → ظهور الوحش → Chase → Attack → Reset. وإذا استخدمت PathfindingService، يجب إعادة حساب المسار عندما يتغير الطريق أو ينغلق باب؛ توثيق Roblox يوضح أن المسار يعتمد على نقاط Waypoints، وأن المسار قد يتعطل بسبب الأبواب أو الأجزاء المتحركة ويحتاج إلى إعادة حساب. 
+roblox.com
+
+ولكي تكون المطاردة عادلة، جرّب هذه القيم كبداية:
+
+العنصر	القيمة المقترحة
+سرعة اللاعب	22
+سرعة الوحش	18–20
+مسافة ظهور الوحش	60–90 studs
+مسافة قتل اللاعب	3–4 studs
+مدة فتح الباب	1.5–2.5 ثانية
+مدة تأخير ظهور الوحش بعد البداية	5–8 ثوانٍ
+عدد العملات الاختيارية	5–10 في كل مرحلة
+لا تجعل الوحش أسرع من اللاعب بشكل دائم؛ الخوف المفروض أن يأتي من العقبات وضيق الوقت، وليس من موت اللاعب مهما حاول. الأفضل أن يكون اللاعب قادراً على النجاة إذا حفظ الطريق ونفذ القفزات بسرعة.
+
+قبل كلشيء اريد اعوف هذا رساله غيرها اريده اول شيء يبني المكان او معمل و يمسح كل تعديلات الي سواها لان اني قبل ما اراسلك سوة اشياء و تعديلات خربانه و حلوة ف الباقي عليك انت نبني و بعدها نبدي بالباقي 
+
+إي، بالبداية لا تخليه يسوي الوحش أو الباركور أو المفاتيح. خليه أولاً يمسح البناء والتعديلات القديمة بالكامل ويبني المعمل فقط. انسخ له هذه الرسالة:
+
+text
+
+
+أعد تصميم المشروع من البداية، ولا تستخدم أي شيء من التعديلات السابقة التي أنشأتها.
+
+الخطوة الأولى يجب أن تكون تنظيف المشروع:
+- احذف جميع المجسمات والبلوكات والممرات والأبواب والوحوش والأنظمة التي أنشأتها سابقاً.
+- احذف جميع الأجزاء الزائدة أو العشوائية أو المكررة.
+- احذف الأكواد والسكريبتات القديمة المتعلقة بالوحش أو الباركور أو المفاتيح أو الأبواب أو الـ Spawn إذا كانت تسبب أخطاء.
+- لا تترك أي وحش أو عقبات أو مفاتيح أو عملات في هذه المرحلة.
+- لا تضف Checkpoints أو Spawn Points داخل المراحل.
+- اترك Spawn واحداً فقط كبداية مؤقتة للاختبار.
+- لا تحذف Terrain أو الخدمات الأساسية في المشروع إذا كانت ضرورية لعمل Roblox Studio.
+
+بعد تنظيف المشروع، ابنِ البيئة فقط، بدون أي Gameplay أو Scripts.
+
+أريد بناء معمل مهجور ومدمر خاص بلعبة رعب:
+- صمّم المكان على شكل ممرات متصلة، وليس طريقاً مستقيماً واحداً.
+- اجعل بعض الممرات ضيقة، وبعض المناطق أوسع حتى تكون مناسبة للباركور لاحقاً.
+- أضف غرفاً جانبية ومناطق انتقال بين أجزاء المعمل.
+- اجعل التصميم مرتباً وقابلاً للتوسعة في المراحل القادمة.
+- لا تجعل الأرض كلها مستوية؛ اترك أماكن مناسبة لاحقاً لإضافة منصات وقفزات وحفر.
+- أضف جدراناً مكسورة وأرضيات متضررة وأسقفاً تحتوي على أنابيب وأسلاك.
+- أضف أجهزة مختبر قديمة ومدمرة، خزانات، طاولات، صناديق، أنابيب، أبواب معدنية، وشاشات مكسورة.
+- اجعل بعض الأجزاء تبدو وكأنها انهارت أو تعرضت لانفجار.
+- اترك مساحة كافية في بعض المناطق لإضافة عقبات ووحش لاحقاً.
+- لا تضع بلوكات عشوائية تسد الطريق أو تعيق حركة اللاعب.
+- لا تضع أرضيات أو مجسمات غير ضرورية تحت المناطق التي ستتحول لاحقاً إلى حفر أو فراغات.
+
+الإضاءة والجو:
+- استخدم إضاءة رعب خافتة داخل المعمل.
+- أضف أضواء حمراء متقطعة في الممرات.
+- اجعل بعض المصابيح ضعيفة أو معطلة.
+- أضف أضواء بيضاء أو زرقاء خفيفة من أجهزة المختبر.
+- أضف تأثيرات شرر كهربائي بسيطة من الأسلاك والأجهزة، لكن بدون أنظمة تفاعلية حالياً.
+- استخدم ضباباً خفيفاً وظلالاً مناسبة.
+- لا تجعل المكان مظلماً لدرجة أن اللاعب لا يستطيع رؤية شكل الممرات أو البناء.
+- اجعل الألوان الأساسية رمادي غامق، أسود، أحمر خافت، ومعدني قديم.
+
+قواعد مهمة:
+- لا تنشئ وحشاً الآن.
+- لا تنشئ باركور أو عقبات الآن.
+- لا تنشئ مفاتيح أو عملات الآن.
+- لا تنشئ أبواباً تفاعلية الآن.
+- لا تضف أي Scripts أو أنظمة Gameplay الآن.
+- لا تضف أنميشن أو نظام مطاردة.
+- ركّز فقط على بناء المعمل والبيئة والإضاءة.
+- اجعل كل المجسمات ثابتة ومنظمة داخل مجلدات واضحة.
+- سمِّ أجزاء البناء بأسماء مفهومة مثل:
+  Laboratory_Walls
+  Broken_Equipment
+  Pipes
+  Red_Lights
+  Damaged_Floors
+  Metal_Doors
+  Props
+- بعد انتهاء البناء، توقف ولا تبدأ بالمرحلة الثانية حتى يتم فحص المكان.
+وأضف له هذه الجملة في النهاية حتى لا يتجاوز المطلوب:
+
+text
+
+
+نفّذ هذه المرحلة فقط. لا تنتقل إلى تصميم الوحش أو الباركور أو المفاتيح أو الأبواب التفاعلية إلا بعد أن أطلب منك ذلك برسالة جديدة.
+بهذا الشكل راح تحصل أولاً على خريطة المعمل الأساسية، وبعدها نقدر نبني عليها الباركور والفراغات والوحش بدون ما تتكرر الأخطاء أو تتداخل السكربتات القديمة.
+
+قال لي ---- سأبدأ بتنفيذ هذه المرحلة على خطوتين: التنظيف أولاً، ثم بناء المعمل المهجور. دعني أولاً أستكشف الوضع الحالي للمشروع.
+
+ممتاز، الآن لدي صورة واضحة عن المشروع الحالي. سأبدأ بالتنظيف ثم بناء المعمل.
+
+**خطة العمل:**
+1. تنظيف كامل: حذف HorrorFacility، السكريبتات، الوحش، وكل ما هو قديم
+2. إعداد الإضاءة والضباب
+3. بناء المعلم بأقسامه: غرفة البداية، ممرات متصلة، غرف جانبية، منطقة منهارة
+4. إضافة التفاصيل: أنابيب، أجهزة مدمرة، إضاءة رعب
+
+لنبدأ بالتنظيف:
+
+تم التنظيف بنجاح. الآن سأقوم بإعداد الإضاءة والضباب وإنشاء المجلدات:
+
+الآن سأبدأ ببناء المعمل. سأبنيه على مراحل متعددة. أولاً، غرفة البداية والممر الأول والتقاطع:
+
+المرحلة الأولى من البناء مكتملة. الآن سأبني غرفة المختبر A، الغرفة الجانبية، الممر 2، والتقاطع الثاني:
+
+الآن سأبني الممر 3، المنطقة المنهارة، وغرفة المختبر B:
+
+الهيكل الأساسي مكتمل. الآن سأضيف الأنابيب والأسلاك على الأسقف والجدران:
+
+الآن سأضيف الأجهزة المكسورة، الأثاث، الصناديق، والأبواب المعدنية:
+
+ممتاز! الآن سأضيف نظام الإضاءة - الأضواء الحمراء في الممرات، المصابيح الضعيفة، وأضواء الأجهزة:
+
+الإضاءة مكتملة. الآن سأضيف تفاصيل نهائية - لوحات جدران مكسورة، علامات تلف، وتفاصيل بصرية إضافية:
+
+الآن دعني أتحقق من البناء النهائي وأحصي العناصر في كل مجلد:
+
+تم بناء المعمل المهجور بالكامل. إليك ملخص ما تم إنجازه:
+
+**التنظيف:**
+- تم حذف مجلد HorrorFacility بالكامل (كل الممرات، الأبواب، الوحش، الأنظمة السابقة)
+- تم حذف جميع السكريبتات القديمة (HorrorGameManager، MonsterAI، ChaseSystem، HorrorClientUI)
+- تم حذف الوحش من ReplicatedStorage وكل الأكواد المرتبطة به
+- تم الإبقاء على Terrain والخدمات الأساسية فقط
+- تم ترك Spawn واحد (TestSpawn) في المركز كبداية مؤقتة
+
+**بناء المعمل - 300 جزء، 33 مصدر ضوء، كلها ثابتة (Anchored):**
+
+**المخطط (ممرات متصلة وليست خط مستقيم):**
+- **غرفة البداية** (20x20) - واسعة، تحتوي على كونسول أمنية مكسور
+- **الممر 1** (ضيق 6 عرض) - يربط البداية بالتقاطع الأول
+- **التقاطع الأول** (10x10) - يفتح غرباً وشرقاً
+- **غرفة المختبر A** (24x20 واسعة) - تحتوي على خزانات كيميائية، طاولات مختبر، شاشات مكسورة، وبه فجوة في الأرض (منطقة مستقبلية للباركور/الحفر)
+- **الغرفة الجانبية** (12x12) - متصلة بغرفة المختبر A من الشمال
+- **الممر 2** (ضيق) - يربط التقاطع الأول بالتقاطع الثاني
+- **التقاطع الثاني** (10x10) - يفتح شمالاً وجنوباً
+- **الممر 3** (ضيق) - يربط التقاطع الثاني بالمنطقة المنهارة
+- **المنطقة المنهارة** (30x25 واسعة) - جدران مكسورة، حطام، أنابيب معلقة، فجوة في الأرض للمستقبل، بدون سقف (مفتوحة للفراغ)
+- **غرفة المختبر B** (16x14) - جنوب التقاطع الثاني، تحتوي على طاولات وشاشات مكسورة
+
+**المجلدات والتنظيم:**
+- Laboratory_Walls (92 جزء) - الجدران ولوحاتها
+- Damaged_Floors (16 جزء) - الأرضيات مع فجوات للحفر المستقبلية
+- Ceilings (31 جزء) - الأسقف مع مواسير تهوية ومصابيح
+- Pipes (36 جزء) - أنابيب وأسلاك في كل الممرات والغرف
+- Red_Lights (25 جزء + 25 مصدر ضوء) - أضواء حمراء طوارئ في الممرات + أضواء شرر
+- Metal_Doors (12 جزء) - أبواب معدنية ثابتة (بعضها مكسور/مائل)
+- Broken_Equipment (31 جزء) - خزانات، طاولات، شاشات، أجهزة مختبر مدمرة
+- Props (57 جزء) - صناديق، براميل، حطام، شظايا زجاج، علامات تحذير
+
+**الإضاءة والجو:**
+- إضاءة رعب خافتة (Brightness 0.8, ClockTime 0)
+- ضباب خفيف (FogEnd 120) مع Atmosphere
+- ColorCorrection لإعطاء مظهر باهت ومشبع بالرمادي
+- أضواء حمراء متقطعة في كل الممرات
+- مصابيح خافتة/معطلة في الغرف
+- أضواء زرقاء/بيضاء خافتة من شاشات الأجهزة
+- تأثيرات شرر كهربائي (أجزاء Neon صغيرة + أضواء خافتة)
+- علامات تحذير صفراء على حواف الفجوات المستقبلية
+
+**ما لم يتم إضافته (حسب طلبك):**
+- لا يوجد وحش
+- لا يوجد باركور أو عقبات
+- لا يوجد مفاتيح أو عملات
+- لا توجد أبواب تفاعلية
+- لا توجد سكريبتات أو أنظمة Gameplay
+- لا توجد Checkpoints أو Spawn Points إضافية
+
+المكان جاهز للفحص. لن أبدأ بالمرحلة الثانية حتى تطلب ذلك برسالة جديدة.
+
+ممتاز، النتيجة الحالية مناسبة جداً كبداية، خصوصاً أنه حذف الأنظمة القديمة وبنى المعمل بدون ما يضيف الوحش أو الباركور.
+
+قبل ما ننتقل للمرحلة الثانية، أرسل له هذه الرسالة حتى يفحص المكان ويصلح أي أخطاء في البناء:
+
+text
+
+
+قبل الانتقال إلى المرحلة الثانية، أريد فحص المعمل بالكامل داخل Roblox Studio وإصلاح أخطاء البناء فقط.
+
+افحص الأمور التالية:
+- تأكد أن جميع الممرات متصلة ويمكن الانتقال بينها بشكل طبيعي.
+- تأكد أن لا توجد جدران أو أجهزة أو صناديق تسد الطرق.
+- تأكد أن اللاعب يستطيع المشي من غرفة البداية إلى جميع الغرف.
+- تأكد أن لا توجد Parts عائمة أو أجزاء مكررة أو مجسمات داخل بعضها.
+- تأكد أن الأرضيات ثابتة ولا توجد فتحات غير مقصودة تسبب سقوط اللاعب.
+- اترك الفجوات الكبيرة المقصودة في غرفة المختبر A والمنطقة المنهارة كما هي، لأنها ستستخدم لاحقاً للباركور والحفر.
+- تأكد أن الأسقف والأنابيب لا تمنع حركة اللاعب أو الكاميرا.
+- تأكد أن الأبواب المعدنية الحالية للزينة فقط وليست تفاعلية.
+- تأكد أن جميع أجزاء البناء Anchored ولا تتحرك عند تشغيل اللعبة.
+- أصلح الإضاءة إذا كانت قوية جداً أو مظلمة جداً.
+- اجعل الممرات واضحة بما يكفي لرؤية الطريق، مع الحفاظ على جو الرعب.
+- احذف أي جزء زائد أو عشوائي لا يخدم تصميم المعمل.
+- لا تضف وحشاً أو باركوراً أو مفاتيح أو عملات أو Scripts أو أبواباً تفاعلية.
+
+بعد الفحص، أصلح الأخطاء الموجودة فقط، ثم توقف وانتظر تعليماتي للمرحلة الثانية.
+بعدها شغّل اللعبة بنفسك وجرب المشي من البداية إلى كل الغرف. إذا المكان شكله جيد وماكو جدران تسد الطريق أو سقوط عشوائي، نبدأ بالمرحلة الثانية: تحديد مسار المطاردة وبناء الباركور والحفر والعقبات.
+
+اصبر ترى كلشي ضلمه مااشوف شيء!!!
+
+إي صحيح، هذا خطأ بالإضاءة. واضح أن الإضاءة العامة والضباب والـ ColorCorrection صارت قوية لدرجة أن كل المعمل تقريباً مظلم. أرسل له هذه الرسالة حتى يصلح الإضاءة فقط:
+
+text
+
+
+توقف عن أي بناء جديد. أصلح مشكلة الإضاءة فقط.
+
+المعمل مظلم جداً ولا أستطيع رؤية الجدران أو الأرضيات أو الممرات. أريد إضاءة رعب، لكن يجب أن يكون الطريق والبناء واضحين أثناء اللعب.
+
+عدّل الإضاءة بهذه الطريقة:
+- ارفع الإضاءة العامة للمكان إلى مستوى متوسط وواضح.
+- اجعل Ambient وOutdoorAmbient بلون رمادي مزرق خافت، وليس أسود.
+- ارفع Brightness الخاص بـ Lighting إلى قيمة مناسبة للرؤية.
+- اجعل ClockTime ليلاً، لكن لا تجعل المكان مظلماً بالكامل.
+- قلل قوة الضباب، وارفع FogEnd حتى لا يغطي الممرات القريبة.
+- خفف تأثير ColorCorrection ولا تجعل الصورة سوداء أو رمادية قاتمة.
+- قلل قوة الـ Atmosphere والـ Density إذا كانت تحجب الرؤية.
+- أضف إضاءة خافتة محايدة أو بيضاء في الممرات حتى تظهر الأرض والجدران.
+- أبقِ الأضواء الحمراء كإضاءة جوية فقط، ولا تجعلها المصدر الوحيد للرؤية.
+- أضف إضاءة صغيرة مخفية أو غير مباشرة قرب الأرض وفي زوايا الممرات.
+- اجعل غرفة البداية والممرات أوضح من الغرف الجانبية.
+- لا تجعل أي مكان مظلماً بالكامل باستثناء الحفر العميقة التي ستُضاف لاحقاً.
+- لا تغير شكل البناء ولا تضف وحشاً أو باركوراً أو Scripts.
+
+بعد التعديل، اختبر اللعبة من منظور اللاعب وتأكد أن:
+1. الأرض واضحة.
+2. الجدران واضحة.
+3. الممرات واضحة.
+4. يستطيع اللاعب معرفة أين يمشي.
+5. الجو ما زال مخيفاً وليس مضيئاً بشكل عادي.
+المهم أن تكون الإضاءة مرعبة لكن قابلة للعب. خلي الممرات تقريباً بإضاءة خافتة واضحة، والغرف الجانبية أغمق، أما الظلام الكامل فخليه فقط للحفر والمناطق الخاصة لاحقاً.
+
+اضن خربان هههههه شوف الفكرة ممر طويل الى الأمام و بعدها يمين و نفس ممر و عقبات و الباركور  الي تقفز فوقه حتى ماتسقط الى الظلام او فراغ الي تحتك هذا بدال الارض تمشي لا لازم تقفز ___ ياخي هو خربه جربت تكتب انجليزي و تشرح بالتفصيل و لازم مكان واسع و طويل و كبير و في نهاية باركور يكون فوز
+
+ههههه إي واضح أنه فهمها كـ معمل عادي مو ماب هروب وباركور. أرسل له هذا النص بالإنجليزي، لأنه أوضح للذكاء الاصطناعي:
+
+text
+
+
+IMPORTANT: Rebuild the current map layout because the previous design is wrong.
+
+Delete the current laboratory layout and rebuild it as a large, long horror parkour escape course. Do not make rooms, intersections, or random laboratory corridors. The main gameplay path must be obvious and continuous.
+
+MAP CONCEPT:
+The player is escaping through a destroyed laboratory while running forward.
+
+LAYOUT:
+1. Start with one very long and wide corridor.
+2. The corridor must go straight forward for a long distance.
+3. At the end of the first corridor, make a clear 90-degree turn to the RIGHT.
+4. After turning right, create another very long and wide corridor.
+5. Continue the map using long connected sections with clear turns, but do not make a maze.
+6. The player must always understand where to go.
+7. The final section must be a large and difficult parkour area.
+8. At the end of the parkour area, add a clear finish zone that represents winning the level.
+
+IMPORTANT PARKOUR DESIGN:
+- The floor must NOT be continuous in the parkour sections.
+- Replace the floor with a huge deep dark void below the player.
+- The void must look like an endless black pit or deep darkness.
+- If the player falls, the player must die and return to the starting point.
+- The player must jump across floating platforms, broken laboratory equipment, metal beams, pipes, platforms, and destroyed structures.
+- The floating objects must be placed at different distances and heights.
+- Some platforms must require running jumps.
+- Some platforms must require short precise jumps.
+- Add safe platforms between difficult jumps so the course is challenging but possible.
+- Do not place invisible floors under the parkour.
+- Do not place hidden blocks that prevent the player from falling.
+- Make sure every jump is physically possible.
+- Do not make the parkour section too narrow; it must be wide and large enough for comfortable movement and camera control.
+- Add several different parkour sections, not just two or three floating blocks.
+- The player should spend a significant amount of time running and jumping before reaching the finish.
+
+ENVIRONMENT:
+Keep the destroyed laboratory theme:
+- Broken walls along the sides of the corridors.
+- Damaged laboratory machines.
+- Pipes and cables on walls and ceilings.
+- Broken glass.
+- Metal beams.
+- Destroyed platforms.
+- Emergency red lights.
+- Weak white and blue lights.
+- Sparks and damaged electrical equipment.
+- Some parts of the ceiling may be broken and open.
+- Use dark colors and horror atmosphere, but keep the path visible.
+
+SIZE:
+- Make the map large and long.
+- The first straight corridor should be at least 150 studs long.
+- The second corridor after the right turn should also be at least 150 studs long.
+- The final parkour area should be at least 200 studs long and 80 studs wide.
+- Make the parkour area spacious, not a small room.
+- Leave enough space between obstacles for the player to run and jump.
+- Do not compress the entire map into a small area.
+
+LIGHTING:
+The previous lighting was too dark. Fix it:
+- The player must clearly see the platforms, walls, hazards, and direction of the path.
+- Use horror lighting, but do not make the map completely black.
+- Use weak neutral lights near the playable path.
+- Use red emergency lights as atmosphere, not the only source of visibility.
+- Keep the void below the parkour very dark.
+- Reduce fog and atmosphere if they block visibility.
+- Do not use black ambient lighting that makes the entire map invisible.
+
+START AND FINISH:
+- Add one clearly visible starting area at the beginning.
+- Add a clear finish area at the end of the final parkour section.
+- The finish area can contain a bright light, exit door, warning signs, and a large “ESCAPE” or “FINISH” sign.
+- The finish must be at the end of the parkour course, not in the middle.
+- Do not add the monster, keys, coins, or interactive doors yet.
+- Do not add gameplay scripts yet.
+- Focus only on rebuilding the correct large map layout and the basic parkour geometry.
+
+ORGANIZATION:
+Create organized folders:
+- StartArea
+- MainCorridor
+- RightTurnCorridor
+- ParkourArea
+- FloatingPlatforms
+- LaboratoryProps
+- Void
+- FinishArea
+- Lighting
+
+FINAL CHECK:
+Before finishing, verify that:
+- The path starts with a long straight corridor.
+- The path turns right at the end.
+- Another long corridor continues after the right turn.
+- The final area is a large floating parkour course.
+- There is no normal floor underneath the parkour.
+- Falling into the darkness is possible.
+- The finish is located at the end of the parkour.
+- The map is large, long, wide, and easy to understand.
+- The player can see where to go.
+- Remove any random blocks or useless rooms.
+وأهم جملة لا تحذفها:
+
+text
+
+
+Do not create a normal floor in the parkour area. The player must survive only by jumping across floating platforms above a deep dark void.
+إذا ظل يسويها غلط، أرسل له أولاً فقط هذا الأمر المختصر حتى يبني الشكل الأساسي بدون تفاصيل:
+
+text
+
+
+Build only the greybox layout first:
+one long straight corridor, then a 90-degree right turn, then another long straight corridor, then a large open parkour area above a deep void, ending with a finish platform. Do not add rooms, random corridors, decorations, monster, keys, doors, or scripts. I want to inspect the basic layout before you add details.
+بهذا الشكل راح تشوف المخطط الأساسي أولاً، وإذا طلع صحيح بعدها خليه يضيف الأجهزة والإضاءة والتفاصيل.
+
+هو حد الرساله الي قبلها كذا --- IMPORTANT: Rebuild the current map layout because the previous design is wrong.
+
+Delete the current laboratory layout and rebuild it as a large, long horror parkour escape course. Do not make rooms, intersections, or random laboratory corridors. The main gameplay path must be obvious and continuous.
+
+MAP CONCEPT:
+The player is escaping through a destroyed laboratory while running forward.
+
+LAYOUT:
+1. Start with one very long and wide corridor.
+2. The corridor must go straight forward for a long distance.
+3. At the end of the first corridor, make a clear 90-degree turn to the RIGHT.
+4. After turning right, create another very long and wide corridor.
+5. Continue the map using long connected sections with clear turns, but do not make a maze.
+6. The player must always understand where to go.
+7. The final section must be a large and difficult parkour area.
+8. At the end of the parkour area, add a clear finish zone that represents winning the level.
+
+IMPORTANT PARKOUR DESIGN:
+- The floor must NOT be continuous in the parkour sections.
+- Replace the floor with a huge deep dark void below the player.
+- The void must look like an endless black pit or deep darkness.
+- If the player falls, the player must die and return to the starting point.
+- The player must jump across floating platforms, broken laboratory equipment, metal beams, pipes, platforms, and destroyed structures.
+- The floating objects must be placed at different distances and heights.
+- Some platforms must require running jumps.
+- Some platforms must require short precise jumps.
+- Add safe platforms between difficult jumps so the course is challenging but possible.
+- Do not place invisible floors under the parkour.
+- Do not place hidden blocks that prevent the player from falling.
+- Make sure every jump is physically possible.
+- Do not make the parkour section too narrow; it must be wide and large enough for comfortable movement and camera control.
+- Add several different parkour sections, not just two or three floating blocks.
+- The player should spend a significant amount of time running and jumping before reaching the finish.
+
+ENVIRONMENT:
+Keep the destroyed laboratory theme:
+- Broken walls along the sides of the corridors.
+- Damaged laboratory machines.
+- Pipes and cables on walls and ceilings.
+- Broken glass.
+- Metal beams.
+- Destroyed platforms.
+- Emergency red lights.
+- Weak white and blue lights.
+- Sparks and damaged electrical equipment.
+- Some parts of the ceiling may be broken and open.
+- Use dark colors and horror atmosphere, but keep the path visible.
+
+SIZE:
+- Make the map large and long.
+- The first straight corridor should be at least 150 studs long.
+- The second corridor after the right turn should also be at least 150 studs long.
+- The final parkour area should be at least 200 studs long and 80 studs wide.
+- Make the parkour area spacious, not a small room.
+- Leave enough space between obstacles for the player to run and jump.
+- Do not compress the entire map into a small area.
+
+LIGHTING:
+The previous lighting was too dark. Fix it:
+- The player must clearly see the platforms, walls, hazards, and direction of the path.
+- Use horror lighting, but do not make the map completely black.
+- Use weak neutral lights near the playable path.
+- Use red emergency lights as atmosphere, not the only source of visibility.
+- Keep the void below the parkour very dark.
+- Reduce fog and atmosphere if they block visibility.
+- Do not use black ambient lighting that makes the entire map invisible.
+
+START AND FINISH:
+- Add one clearly visible starting area at the beginning.
+- Add a clear finish area at the end of the final parkour section.
+- The finish area can contain a bright light, exit door, warning signs, and a large “ESCAPE” or “FINISH” sign.
+- The finish must be at the end of the parkour course, not in the middle.
+- Do not add the monster, keys, coins, or interactive doors yet.
+- Do not add gameplay scripts yet.
+- Focus only on rebuilding the correct large map layout and th
+
+إي الرسالة انقطعت لأن النص طويل. استخدم هذه النسخة المختصرة، بيها كل الأفكار المهمة:
+
+text
+
+
+IMPORTANT: Rebuild the current map because the previous layout is wrong.
+
+Delete the current laboratory layout, random rooms, useless blocks, and old map parts. Build only a large horror parkour escape course. Do not create a maze.
+
+LAYOUT:
+- Start with one very long and wide straight corridor, at least 150 studs long.
+- At the end, make a clear 90-degree turn to the RIGHT.
+- After the turn, build another long and wide corridor, at least 150 studs long.
+- The path must be obvious and continuous.
+- At the end, build a large final parkour area, at least 200 studs long and 80 studs wide.
+- Put the finish zone at the end of the parkour area, with a bright EXIT or FINISH sign.
+
+PARKOUR:
+- Do not create a continuous floor in the parkour area.
+- Put a deep black void below the player instead of normal ground.
+- The player must jump across floating platforms, broken machines, pipes, metal beams, and destroyed laboratory structures.
+- Place platforms at different heights and distances.
+- Include running jumps, precise jumps, and safe platforms between difficult jumps.
+- Every jump must be possible.
+- Do not add invisible floors or hidden blocks below the parkour.
+- Falling into the void must be possible.
+- Make the parkour large and spacious, not a tiny room.
+
+ENVIRONMENT:
+- Keep the destroyed laboratory theme.
+- Add broken walls, damaged machines, pipes, wires, metal beams, broken glass, and destroyed platforms.
+- Use red emergency lights with weak white or blue lights.
+- Keep the map dark and scary, but make the path and platforms clearly visible.
+- Do not make the entire map black.
+- Keep the void very dark.
+
+START AND FINISH:
+- Add one clear starting area at the beginning.
+- Add one clear finish area at the very end.
+- Do not add the monster, keys, coins, interactive doors, or gameplay scripts yet.
+- Focus only on the large map layout, corridors, parkour platforms, void, and finish area.
+
+Before adding decorations, create the basic greybox layout first so I can inspect it.
+إذا حتى هذه تنقطع، استخدم النسخة الأقصر جداً:
+
+text
+
+
+Delete the current map and rebuild only the basic greybox layout.
+
+Create a large horror parkour escape course:
+1. One long, wide straight corridor, at least 150 studs.
+2. A clear 90-degree RIGHT turn.
+3. Another long, wide corridor, at least 150 studs.
+4. A large final parkour area, at least 200 studs long and 80 studs wide.
+5. A finish platform at the very end.
+
+In the parkour area, remove the normal floor completely. Put a deep black void below the player. The player must jump across floating platforms, broken machines, pipes, metal beams, and destroyed laboratory structures. Use different heights and distances, with possible but challenging jumps. Do not add invisible floors.
+
+Keep the destroyed laboratory style, but make the path and platforms visible with weak white and red emergency lights. Do not make the map completely black.
+
+Do not add rooms, maze corridors, monster, keys, coins, doors, decorations, or scripts yet. Build only the basic layout and wait for my approval.
+استخدم النسخة الثانية أولاً؛ لأنها تجبره يبني الشكل الأساسي فقط وما يتشتت بالتفاصيل.
+
+قال لي --- Plan approved. Let me start building the greybox layout. First, deleting the old map:
+
+Old map deleted. Now building Corridor 1, the turn, and Corridor 2:
+
+Now building the parkour area shell with void:
+
+Now the most important part - building the parkour platforms. I need to carefully calculate every jump to make sure it's possible:
+
+All 24 platforms verified - every jump is possible. No gaps exceed 7 studs diagonal, no height gain exceeds 4 studs. Now building the finish zone:
+
+Now setting up lighting and SpawnLocation:
+
+The greybox layout is complete and ready for inspection. Here's the summary:
+
+**Layout (114 parts total, all anchored, 0 void floors):**
+
+**Corridor 1** - 160 studs long, 12 wide, 14 high
+- Goes straight north (+Z) from spawn
+- Floor, walls, ceiling, fully enclosed
+- SpawnLocation at the start (0, 0.5, 10)
+
+**90-Degree Right Turn** - 12x12 corner
+- Player turns right from +Z to +X
+- Outer corner walls, inner corner open
+
+**Corridor 2** - 160 studs long, 12 wide, 14 high
+- Goes straight east (+X) from the turn
+- Entry ledge at the end (X=172) where parkour begins
+
+**Parkour Area** - 220 studs long, 90 wide, 30 high walls
+- NO floor - open void below (verified: 0 void floors)
+- Side walls with entry opening and exit opening
+- No ceiling (open to dark void above)
+- 24 floating platforms with varied jumps:
+  - 6 safe/rest platforms (larger, 7-8 studs)
+  - 18 challenge platforms (3-5 studs, narrow beams)
+  - Heights range from Y=1 to Y=11
+  - All jumps verified: max diagonal gap 6.8 studs, max height gain 4 studs
+  - Mix of running jumps, precise jumps, drops, beam walks, vertical jumps
+
+**Finish Zone** - 20x30 platform at far end
+- Bright green neon EXIT sign on the wall
+- Fully enclosed room with lights
+- Clearly visible from a distance
+
+**Lighting** - Dark horror atmosphere
+- Red emergency lights (atmospheric) + dim white/blue lights (visibility)
+- Parkour area lit from above at Y=25 so platforms are visible
+- Void below stays very dark
+- No floor means falling into the void is real
+
+The layout is clean greybox - no decorations, no scripts, no monster. Ready for your inspection.
+
+ممتاز، هسه صار قريب جداً من فكرتك الأصلية. لا تخليه يضيف تفاصيل أو وحش حالياً. أولاً جرّبه داخل Play وتأكد بنفسك من:
+
+الممر الأول طويل ومستقيم.
+الالتفاف فعلاً إلى اليمين، مو إلى اليسار.
+الممر الثاني واضح وممتد.
+منطقة الباركور واسعة وليست ضيقة.
+كل منصة يمكن الوصول إليها بالقفز.
+لا توجد أرضية مخفية تحت الفراغ.
+السقوط يؤدي فعلاً إلى أسفل الخريطة.
+النهاية واضحة ويمكن رؤيتها.
+الإضاءة تسمح برؤية المنصات.
+إذا لاحظت أن بعض القفزات صعبة أو المنصات صغيرة، أرسل له هذه الرسالة:
+
+text
+
+
+The greybox layout is good. Do not add decorations, monster, keys, doors, or gameplay scripts yet.
+
+Now test the map from the player's point of view and fix only the layout problems:
+
+- Confirm Corridor 1 goes straight forward.
+- Confirm the next turn is exactly 90 degrees to the RIGHT.
+- Confirm Corridor 2 continues straight after the right turn.
+- Make sure the player can clearly see the entrance to the parkour area.
+- Make sure every platform jump is realistically possible for a normal Roblox character.
+- Increase the size of any platform that is too small.
+- Reduce the distance of any jump that feels unfair.
+- Add wider safe platforms after difficult jumps.
+- Keep the parkour area wide and spacious.
+- Do not add a hidden floor under the void.
+- Make sure falling into the void is possible.
+- Make the finish platform clearly visible from the final jumps.
+- Keep the current horror lighting, but make sure all platforms are visible.
+
+Only fix movement, jump distance, platform size, visibility, and layout problems. Do not add decoration or gameplay systems yet.
+نقطة مهمة: هو كاتب أن أعلى فجوة 6.8 studs، وهذا غالباً قابل للقفز، لكن قابلية القفز تعتمد أيضاً على ارتفاع المنصة وسرعة اللاعب. لذلك الاختبار الفعلي داخل Play أهم من الحساب الذي كتبه الذكاء الاصطناعي.
+
+اكو مشكلات في منصات مو متساويه بالحجم و اكو مساحات طويله بين بعضهم و مااقدر اشوف بعضهم ف المكان حلو كلش بس لازم نخلي اطول و اماكن للمهام و تعرف باقي خطه ماب و نريد اصوات و اضواء حمراء تطفئ و تشتغل و اي خطه منعندك تخلي ماب حلو و يمديك تعدل من خطتي
+
+إي، المكان الأساسي صار حلو، لكن لا تخليه يضيف كل شيء دفعة واحدة حتى ما يخرب البناء مرة ثانية. الأفضل نشتغل على 3 مراحل:
+
+إصلاح الباركور وتوسيع الماب.
+إضافة المهام والمفاتيح والأبواب.
+إضافة الوحش والأصوات والإضاءة المتحركة.
+أرسل له هذه الرسالة أولاً، وهي تركز على إصلاح الماب وتوسيعه فقط:
+
+text
+
+
+The current map layout is good, but the parkour needs improvement. Do not delete the entire map.
+
+First, fix and expand the existing map:
+
+PARKOUR FIXES:
+- Make the floating platforms more consistent in size.
+- Use mostly medium-sized platforms, around 8x8 or 10x10 studs.
+- Use smaller platforms only for special difficult jumps.
+- Reduce any unfairly long gaps between platforms.
+- Never place the next platform so far away that the player cannot see it.
+- Make sure every next platform is visible from the current platform.
+- Add small lights, red markers, or glowing arrows near the intended route.
+- Add wide safe platforms after difficult jumps.
+- Do not make several difficult jumps in a row without a safe platform.
+- Keep the void below the parkour with no hidden floor.
+- Make every jump possible for a normal Roblox character.
+
+EXPAND THE MAP:
+- Make the map longer and more interesting.
+- Extend the main corridors and add more connected areas.
+- Add a large intermediate laboratory area before the final parkour.
+- Add side rooms and optional routes for future keys, coins, and missions.
+- Do not make the map confusing or maze-like.
+- Keep one obvious main route.
+- Add wide areas where future tasks and puzzles can be placed.
+- Add at least three future mission areas:
+  1. A control room.
+  2. A storage or maintenance room.
+  3. A damaged power room.
+- These areas should be empty for now, with enough space for future objectives.
+- Add a few locked-looking electronic doors as placeholders, but do not make them interactive yet.
+
+LEVEL STRUCTURE:
+- Start area.
+- Long first corridor.
+- Right turn.
+- Long second corridor.
+- Intermediate laboratory area.
+- More corridors and obstacles.
+- Large parkour section above the void.
+- Final escape area and finish zone.
+
+LIGHTING:
+- Keep the horror atmosphere, but make the path and platforms visible.
+- Add red emergency lights along the corridors.
+- Make some red lights turn on and off at different times.
+- Use weak white or blue lights near platforms and important paths.
+- Do not make all lights turn off at the same time.
+- Keep the void dark.
+- Add warning lights near dangerous gaps.
+- Use flickering lights only in selected areas, not everywhere.
+
+SOUNDS:
+Add only environmental sounds for now:
+- Low laboratory ambience.
+- Distant electrical buzzing.
+- Occasional metal creaks.
+- Water dripping.
+- Short electrical sparks near broken machines.
+- Red emergency light alarm sounds.
+- Subtle wind or dark ambience above the void.
+- Do not add the monster sound or chase music yet.
+
+IMPORTANT:
+- Do not add the monster yet.
+- Do not add keys, coins, missions, or working doors yet.
+- Do not add complicated gameplay scripts yet.
+- Do not delete the good existing layout.
+- Preserve the current start, corridors, right turn, parkour area, and finish.
+- After making these changes, stop and wait for the next instruction.
+وبالنسبة لخطة الماب، أقترح تخليها بهذا الترتيب:
+
+البداية: اللاعب يطلع من غرفة صغيرة، يسمع إنذار خافت، ويمشي بالممر الطويل.
+
+الممر الأول: عقبات بسيطة مثل أنابيب منخفضة، أجهزة مقلوبة، وأرضية فيها أجزاء مكسورة، لكن بدون باركور صعب.
+
+منطقة التحكم: غرفة واسعة فيها شاشات مكسورة ولوحة كهرباء. لاحقاً اللاعب يحتاج يصلح الكهرباء حتى يفتح الباب.
+
+الممر الثاني: يبدأ الخطر يزيد؛ أضواء تطفئ وتشتغل، أبواب تغلق مؤقتاً، وأرضيات كهربائية يمكن تجنبها.
+
+غرفة الصيانة: منطقة جانبية اختيارية فيها عملات أو مفتاح، لكنها أخطر من الطريق الرئيسي.
+
+منطقة الانهيار: الأرض تنتهي تدريجياً، واللاعب يبدأ يقفز على أجهزة وأنابيب ومنصات فوق الفراغ.
+
+منطقة الباركور الرئيسية: منصات متوسطة الحجم، وكل منصة تكون مرئية من التي قبلها. خلي بين كل 3 أو 4 قفزات منصة آمنة واسعة.
+
+النهاية: باركور أصعب قليلاً، ثم منصة كبيرة وباب خروج مضيء مع كلمة ESCAPE.
+
+ولا تخلي الأضواء الحمراء كلها تشتغل وتنطفي بنفس الوقت؛ خليها بشكل متعاقب، مثلاً ضوء يشتغل، الثاني ينطفئ، وبعد لحظة الثالث يومض. هذا يعطي إحساس أن الكهرباء خربانة بدون ما يخلي المكان مظلم بالكامل.
+
+قال --- The plan is approved. Let me start executing it phase by phase. First, I need to check the parkour wall positions to understand the full area bounds before shifting everything.
+
+Now I have the full picture. The parkour area spans X=172 to X=392, Z=130 to Z=220, Y=0 to Y=30. After shifting +140 in X, it'll be X=312 to X=532. The lab will fill X=172 to X=312.
+
+Let me start with Phase 1 & 3: Shift the parkour area and finish zone, delete old platforms, and build new improved platforms.
+
+Good, 42 parts shifted and 24 old platforms deleted. Now let me build the new improved parkour platforms with consistent sizing, fair gaps, safe platforms, route markers, and lights.
+
+Platforms rebuilt. Now let me build the intermediate laboratory area (Phase 2). This is a large structure, so I'll build the main structure first.
+
+Lab structure is built. Now let me add lab equipment placeholders and ceiling lights to make the rooms feel like a real lab.
+
+Now let me create the flickering light script (Phase 4) and search for environmental sound assets (Phase 5) in parallel.
+
+Good, I have the sound asset IDs. Let me create all the environmental Sound objects at their proper locations.
+
+Now let me add the random sound playing logic (metal creaks and sparks) to the flickering lights script.
+
+Now let me verify everything (Phase 5 / Todo 5) - check all jumps are possible, no hidden floors, and corridors are preserved.
+
+Let me also verify the safe platforms and arrow markers exist (the filter excluded them from the count since they contain "_").
+
+Everything checks out. Let me do a final count of all parts in the map to confirm the full structure.
+
+Based on the conversation history, all the work from your previous request has been completed successfully. Here's a summary of what was accomplished:
+
+**Parkour Fixes (Completed)**
+- 19 platforms rebuilt with consistent 8x8 stud sizing (safe platforms at 10x10 or 12x12)
+- Gaps reduced to fair distances (max 7 studs horizontal, 3 studs vertical)
+- 14 red neon arrow markers pointing to the next jump
+- 14 blue/white PointLights near each platform for visibility
+- 2 flickering red warning lights near dangerous gaps
+- Safe rest platforms placed after every 2-3 difficult jumps
+- Void kept open with no hidden floors
+
+**Map Expansion (Completed)**
+- Intermediate laboratory area built between Corridor 2 and parkour (X=172 to X=312)
+- Parkour area and finish zone shifted +140 studs in X
+- 3 side rooms created: control room, storage/maintenance room, damaged power room
+- 4 placeholder electronic doors (non-interactive, CanCollide=false)
+- Lab equipment and ceiling lights added
+
+**Lighting & Sounds (Completed)**
+- FlickeringLights script in ServerScriptService handles red emergency lights, lab fluorescents, and warning lights with random sound playback
+- 10 environmental sounds placed: lab ambience, electrical buzz, water drips, metal creaks, sparks, alarm beeps, wind ambience
+- 92 total PointLights across the map
+
+**Verification**
+- 277 total parts, all corridors preserved (52 parts in Corridors folder)
+- Laboratory: 124 parts, ParkourArea: 34 parts, Platforms: 56 parts, FinishZone: 11 parts
+- All jumps confirmed possible, all platforms visible from previous one
+
+I'm ready for your next instruction. What would you like to do next?    --- بس ماكو اضويه بعدها ضلام ولهذا ماشفت باركور 
+
+إي، واضح أنه قال الأضواء موجودة بالأرقام فقط، لكن فعلياً ما تنور أثناء اللعب. خليّه يصلح الرؤية والإضاءة فقط ولا يغير الماب أو الباركور.
+
+انسخ له:
+
+text
+
+
+The map is still almost completely dark during Play mode. I cannot see the parkour platforms, route, or hazards. Do not just report that lights exist. Test the game from the player's camera and fix the actual visibility problem.
+
+IMPORTANT:
+- Do not rebuild or delete the map.
+- Do not change the parkour layout.
+- Do not add the monster, keys, missions, or doors.
+- Fix lighting and visibility only.
+
+LIGHTING FIX:
+- Check whether the FlickeringLights script has errors and fix all errors.
+- Make sure all PointLights are parented to visible Parts or Attachments.
+- Make sure every light is Enabled.
+- Increase the PointLight Brightness and Range enough to illuminate the nearby platform.
+- Add a visible white or pale-blue Neon light source above or beside every important parkour platform.
+- Use SurfaceLights or SpotLights if PointLights are not lighting the platforms correctly.
+- Make the main parkour route clearly visible from the player's camera.
+- Add brighter neutral lights along the intended path, not only red lights.
+- Keep red lights for the horror atmosphere, but do not use red as the only lighting.
+- Temporarily disable the flickering script and test the lighting with all lights permanently ON.
+- Set the global Lighting Ambient and OutdoorAmbient to a dark gray-blue, not black.
+- Increase Lighting Brightness slightly.
+- Reduce Atmosphere Density and Haze.
+- Increase Atmosphere Offset if needed.
+- Reduce Fog or disable it temporarily for testing.
+- Check that ColorCorrection is not making the scene black.
+- Make sure the parkour area is not hidden by black walls, black ceiling parts, or dark materials.
+- Make the void below the platforms dark, but keep the platforms, arrows, and hazards visible.
+
+VISIBILITY TARGET:
+From every platform, the player must clearly see:
+1. The next platform.
+2. The safe route.
+3. The edges of the platform.
+4. The dangerous void below.
+5. The red route markers or arrows.
+
+TESTING:
+- Start Play mode from the actual SpawnLocation.
+- Walk through both corridors into the parkour area.
+- Confirm that the parkour is visible without changing the player's graphics settings.
+- Keep all lighting permanently ON until visibility is confirmed.
+- Only after visibility works, re-enable subtle flickering on selected red lights.
+- Do not allow all lights to turn off at the same time.
+
+After testing, tell me exactly which lighting settings and scripts were changed. Do not claim it is fixed unless you tested it from the player's camera.
+وإذا بقى مظلم، أرسل له بعدها هذا الأمر الأقوى:
+
+text
+
+
+For debugging, temporarily remove or disable Atmosphere, Fog, ColorCorrection, and the FlickeringLights script. Set the map to clear neutral visibility and turn every parkour light on. I need to confirm the geometry first. Do not add darkness again until I approve the visibility.
+السبب غالباً واحد من هذه الأشياء: السكربت يطفي كل الأضواء، أو الـ Atmosphere والـ ColorCorrection مسوين الشاشة سوداء، أو الـ PointLight موجود لكنه بعيد/ضعيف وما واصل للمنصات. الأفضل يخلي الإضاءة ثابتة أولاً، وبعد ما تشوف الباركور بوضوح يرجع يضيف الوميض تدريجياً.
+
+:> اي من حط الاضوية الاخطاء إنكشفت الباركور صغير و حاط بلوكات زايده و باركور مو صعب اصلا و ماكو شي يخوف من بعد ما حط عدد اضويه لدرجه حياتي نورهى حتى بالباركور الغبي حط اضويه ياخي حتى ماكو ترتيب 
+
+إي هسه بان الخطأ الحقيقي 😂 الإضاءة ما كانت المشكلة؛ المشكلة أن الباركور نفسه صغير وعشوائي، والأضواء غطّت على العيوب. لا تخليه يصلح كل الماب. خليه يعيد منطقة الباركور فقط بشكل مرتب ومخيف، ويحذف الإضاءة الزائدة.
+
+أرسل له هذا النص:
+
+text
+
+
+The parkour area is not acceptable. The lighting revealed that it is too small, too easy, cluttered, and poorly organized.
+
+Do not modify the corridors, laboratory rooms, or finish zone. Rebuild ONLY the parkour area.
+
+PARKOUR REBUILD:
+- Delete all current parkour platforms, random blocks, unnecessary lights, arrows, and extra objects inside the ParkourArea.
+- Keep the deep void, side boundaries, entrance, and finish location.
+- Rebuild the parkour area as a much longer and larger course.
+- Make it feel like a dangerous destroyed laboratory above a bottomless void.
+- Do not use random floating blocks.
+- Organize the course into clear sections with a visible route.
+
+Create these sections in order:
+
+SECTION 1 - INTRODUCTION:
+- 3 or 4 medium platforms.
+- Easy jumps only to teach the player the movement.
+- Use broken floor pieces and metal beams.
+
+SECTION 2 - MEDIUM PARKOUR:
+- 6 to 8 platforms.
+- Add different heights, broken machines, pipes, and narrow beams.
+- Make the player choose the safe route.
+- Add some gaps that require running jumps.
+
+SECTION 3 - HARD PARKOUR:
+- 8 to 10 platforms.
+- Use longer gaps, height changes, narrow beams, moving-looking machinery, and broken structures.
+- Add wide safe platforms after difficult jumps.
+- Make the player plan the next jump.
+- Do not make every jump the same size.
+
+SECTION 4 - FINAL ESCAPE:
+- A long difficult sequence leading directly to the finish.
+- Add collapsing-looking platforms, damaged metal bridges, pipes, and separated platforms.
+- The final jump should be challenging but fair.
+- Make the finish platform large and clearly visible at the end.
+
+PLATFORM RULES:
+- Use mostly platforms between 8x8 and 12x12 studs.
+- Use smaller 5x5 or 6x6 platforms only for difficult jumps.
+- Do not put platforms in a straight boring line.
+- Do not place random blocks with no purpose.
+- Every platform must be part of the route or a clearly marked optional route.
+- The next platform should be visible, but not always directly in front of the player.
+- Use turns, height changes, side jumps, and alternate paths.
+- Make the parkour area at least 300 studs long and at least 100 studs wide.
+- Add safe platforms after every 2 or 3 difficult jumps.
+- Make every jump possible, but do not make the entire course easy.
+
+LIGHTING:
+- Delete most of the current parkour lights.
+- Do not flood the parkour with bright light.
+- Use only a few red emergency lights placed far apart.
+- Use weak blue or white lights only near important platforms.
+- Keep some sections dark and scary, but the next platform must still be barely visible.
+- Do not put a light on every platform.
+- Do not use bright arrows everywhere.
+- Use subtle red lights, flickering lights, sparks, and shadows instead of excessive lighting.
+- The void must remain almost completely black.
+- The parkour should feel dangerous and mysterious, not like a brightly lit obstacle course.
+
+ORGANIZATION:
+Create these folders:
+- Parkour_Section_1
+- Parkour_Section_2
+- Parkour_Section_3
+- Parkour_Final_Escape
+- Parkour_SafePlatforms
+- Parkour_Lights
+- Parkour_Props
+- Void
+
+IMPORTANT:
+- Do not add the monster yet.
+- Do not add keys or missions yet.
+- Do not add random decorations.
+- Do not add unnecessary blocks.
+- Do not add lights until the new parkour geometry is finished.
+- Build the geometry first, then add only a small number of carefully placed lights.
+- Test the entire route from the player's camera before claiming it is complete.
+وإذا تريد تمنع التخريب أكثر، أرسل له قبل النص هذا الأمر:
+
+text
+
+
+Work in two steps. First delete and rebuild the parkour geometry only. Stop and show me the new layout before adding any lights or decorations.
+بهذا الشكل راح يضطر يسوي الباركور أولاً، وبعد ما تتأكد أن حجمه وصعوبته مناسبين، تخليه يضيف الإضاءة بشكل قليل ومدروس، مو يحط ضوء على كل بلوكة.
+
+بس اصبر هو حط باركور سهل يروح للامام ماحط عوائق او تحديات او صعوبات و كمان الاضويه من حطاها ماصار شيء يخوف و ماحط زينه رعب و يني ماكو شيء رائع حقاً و اريك ماب كبير و طويل 
+
+إي، هسه فهمت المشكلة: هو بنى Greybox تجريبي، مو ماب نهائي. يعني حط منصات سهلة بخط مستقيم، بينما أنت تريد ماب طويل وكبير، مليان تحديات وزينة رعب وتصميم واضح.
+
+أرسل له هذه الرسالة:
+
+text
+
+
+The current parkour is far too simple. It is just an easy straight line with no real obstacles, no challenge, no horror decoration, and no exciting level design.
+
+Do not treat this as a greybox anymore. Build a large, long, finished horror escape map.
+
+MAIN GOAL:
+Create a long destroyed laboratory where the player must run, jump, climb, avoid hazards, and survive above a deep dark void. The course must feel like a real horror game level, not a test area.
+
+MAP SIZE:
+- Make the whole map very large and long.
+- Add multiple connected areas and long sections.
+- The player should need several minutes to reach the finish.
+- Do not compress everything into one small room.
+- Keep one clear main route, but add optional dangerous side routes.
+- The route must not be a simple straight line.
+
+PARKOUR DESIGN:
+Create different challenges, not only normal jumps:
+- Broken floors with missing sections.
+- Floating metal platforms.
+- Narrow beams over the void.
+- Large gaps requiring running jumps.
+- Platforms at different heights.
+- Pipes that act as walkways.
+- Moving or rotating machinery.
+- Falling metal beams.
+- Electric floor sections.
+- Crushing machines.
+- Laser or alarm hazard sections.
+- Collapsing platforms.
+- Doors that close behind the player.
+- Wall obstacles that force the player to change direction.
+- Low pipes that require jumping or sliding under them.
+- Platforms that require turning left and right.
+- Sections where the player must choose between a safe long route and a dangerous shortcut.
+- Add rest platforms after difficult challenges.
+
+Do not make all jumps the same.
+Do not place platforms in one straight line.
+Do not make the course easy.
+Every challenge must be possible, but the player should fail if they move carelessly.
+
+LEVEL STRUCTURE:
+1. Long laboratory corridor with broken machines and simple obstacles.
+2. Damaged control room with a route through broken equipment.
+3. Maintenance area with pipes, narrow walkways, and electrical hazards.
+4. Collapsed laboratory section with a large void.
+5. Vertical parkour section going upward through broken platforms.
+6. Dark emergency section with flickering lights and confusing sounds.
+7. Final long parkour escape above the void.
+8. Large finish area with an emergency exit.
+
+HORROR DECORATION:
+Add detailed horror atmosphere:
+- Broken laboratory equipment.
+- Blood stains or dark damage marks.
+- Warning signs and danger symbols.
+- Hanging wires.
+- Flickering monitors.
+- Broken glass.
+- Rusted metal.
+- Smoke coming from machines.
+- Steam leaking from pipes.
+- Sparks from damaged electrical panels.
+- Emergency alarms.
+- Red emergency lights.
+- Dark stains on walls and floors.
+- Abandoned medical or laboratory props.
+- Damaged doors and blocked passages.
+- Shadows and areas where something could be hiding.
+- A few distant silhouettes or mysterious movement, but do not add the monster yet.
+- Do not use random decorations; place them according to the environment.
+
+LIGHTING:
+- Do not brightly light the entire map.
+- Do not put one bright light on every platform.
+- Use darkness, shadows, red emergency lights, weak blue lights, and occasional white flickering lights.
+- Keep the route barely visible but playable.
+- Make some lights turn off when the player approaches.
+- Use red lights in emergency areas.
+- Use blue or white lights near important objectives.
+- Keep the void almost completely black.
+- Add fog carefully without hiding the platforms.
+- The lighting should create tension and fear, not make the map look bright and safe.
+
+SOUND ATMOSPHERE:
+- Add distant metal banging.
+- Electrical buzzing.
+- Water dripping.
+- Steam release sounds.
+- Flickering light sounds.
+- Distant alarms.
+- Low laboratory ambience.
+- Occasional unexplained sounds behind the player.
+- Do not add the monster chase music yet.
+
+IMPORTANT:
+- Delete the current boring straight parkour layout and its excessive lights.
+- Keep the starting area and the general map direction if possible.
+- Rebuild the parkour as a large, challenging, detailed horror level.
+- Do not add random blocks.
+- Do not add the monster yet.
+- Do not add keys or missions yet.
+- Do not finish until the map has real obstacles, horror decoration, varied lighting, and multiple long sections.
+- Test the route from the player's camera and make sure it is challenging, visible, and exciting.
+وإذا ظل يبنيها صغيرة، أرسل له بعدها هذا الأمر المختصر:
+
+text
+
+
+Stop building small test sections. This must be a large playable level, not a greybox. Expand the map horizontally and vertically, add multiple long areas, and make the player run for several minutes before reaching the finish. Do not add more lights until the map itself has enough obstacles, decorations, and horror detail.
+الخطة الأفضل لمابك تكون: ممر طويل → غرفة مهام → منطقة صيانة → باركور فوق حفرة → منطقة كهرباء → باركور عمودي → مطاردة نهائية → باب الخروج. بهذه الطريقة ما يصير كله قفزات سهلة للأمام، ويصير عندك تنوع وخوف وتصاعد بالصعوبة.
+
+حد الكلام الي قبلها من رسالتك ذا فقط     --- The current parkour is far too simple. It is just an easy straight line with no real obstacles, no challenge, no horror decoration, and no exciting level design.
+
+Do not treat this as a greybox anymore. Build a large, long, finished horror escape map.
+
+MAIN GOAL:
+Create a long destroyed laboratory where the player must run, jump, climb, avoid hazards, and survive above a deep dark void. The course must feel like a real horror game level, not a test area.
+
+MAP SIZE:
+- Make the whole map very large and long.
+- Add multiple connected areas and long sections.
+- The player should need several minutes to reach the finish.
+- Do not compress everything into one small room.
+- Keep one clear main route, but add optional dangerous side routes.
+- The route must not be a simple straight line.
+
+PARKOUR DESIGN:
+Create different challenges, not only normal jumps:
+- Broken floors with missing sections.
+- Floating metal platforms.
+- Narrow beams over the void.
+- Large gaps requiring running jumps.
+- Platforms at different heights.
+- Pipes that act as walkways.
+- Moving or rotating machinery.
+- Falling metal beams.
+- Electric floor sections.
+- Crushing machines.
+- Laser or alarm hazard sections.
+- Collapsing platforms.
+- Doors that close behind the player.
+- Wall obstacles that force the player to change direction.
+- Low pipes that require jumping or sliding under them.
+- Platforms that require turning left and right.
+- Sections where the player must choose between a safe long route and a dangerous shortcut.
+- Add rest platforms after difficult challenges.
+
+Do not make all jumps the same.
+Do not place platforms in one straight line.
+Do not make the course easy.
+Every challenge must be possible, but the player should fail if they move carelessly.
+
+LEVEL STRUCTURE:
+1. Long laboratory corridor with broken machines and simple obstacles.
+2. Damaged control room with a route through broken equipment.
+3. Maintenance area with pipes, narrow walkways, and electrical hazards.
+4. Collapsed laboratory section with a large void.
+5. Vertical parkour section going upward through broken platforms.
+6. Dark emergency section with flickering lights and confusing sounds.
+7. Final long parkour escape above the void.
+8. Large finish area with an emergency exit.
+
+HORROR DECORATION:
+Add detailed horror atmosphere:
+- Broken laboratory equipment.
+- Blood stains or dark damage marks.
+- Warning signs and danger symbols.
+- Hanging wires.
+- Flickering monitors.
+- Broken glass.
+- Rusted metal.
+- Smoke coming from machines.
+- Steam leaking from pipes.
+- Sparks from damaged electrical panels.
+- Emergency alarms.
+- Red emergency lights.
+- Dark stains on walls and floors.
+- Abandoned medical or laboratory props.
+- Damaged doors and blocked passages.
+- Shadows and areas where something could be hiding.
+- A few distant silhouettes or mysterious movement, but do not add the monster yet.
+- Do not use random decorations; place them according to the environment.
+
+LIGHTING:
+- Do not brightly light the entire map.
+- Do not put one bright light on every platform.
+- Use darkness, shadows, red emergency lights, weak blue lights, and occasional white flickering lights.
+- Keep the route barely visible but playable.
+- Make some lights turn off when the player approaches.
+- Use red lights in emergency areas.
+- Use blue or white lights near important objectives.
+- Keep the void almost completely black.
+- Add fog carefully without hiding the platforms.
+- The lighting should create tension and fear, not make the map look bright and safe.
+
+SOUND ATMOSPHERE:
+- Add distant metal banging.
+- Electrical buzzing.
+- Water dripping.
+- Steam release sounds.
+- Flickering light sounds.
+- Distant alarms.
+- Low laboratory ambience.
+- Occasional unexplained sounds behind the player.
+- Do not add the monster chase music yet.
+
+IMPORTANT:
+- Delete the current boring straight parkour layout and its excessive lights.
+- Keep the starting area and the general map direction if possible.
+- Rebuild the parkour as a large,
+
+إي، الحد قصّ الرسالة بالنهاية. استخدم هذه النسخة المختصرة:
+
+text
+
+
+The current parkour is too simple: it is a straight line with easy jumps, no real obstacles, no horror atmosphere, and no exciting design.
+
+Delete the current boring parkour layout and excessive lights. Keep the starting area and general direction, but rebuild the map as a large, long, finished horror escape level.
+
+MAIN GOAL:
+Create a destroyed laboratory where the player must run, jump, climb, avoid hazards, and survive above a deep dark void. The player should need several minutes to reach the finish. Do not make a small room or a simple straight line.
+
+MAP STRUCTURE:
+1. Long laboratory corridor with broken machines and basic obstacles.
+2. Damaged control room with multiple paths.
+3. Maintenance area with pipes, narrow walkways, and electrical hazards.
+4. Collapsed laboratory section above a large void.
+5. Vertical parkour section going upward.
+6. Dark emergency section with flickering lights and strange sounds.
+7. Final difficult parkour above the void.
+8. Large emergency exit and finish area.
+
+PARKOUR CHALLENGES:
+- Broken floors and missing sections.
+- Floating metal platforms.
+- Narrow beams above the void.
+- Running jumps across large gaps.
+- Platforms at different heights.
+- Pipes used as walkways.
+- Moving or rotating machinery.
+- Falling metal beams.
+- Electric floor hazards.
+- Crushing machines.
+- Laser or alarm hazards.
+- Collapsing platforms.
+- Doors closing behind the player.
+- Obstacles that force left and right turns.
+- Low pipes requiring careful jumping.
+- Safe routes and dangerous shortcuts.
+- Wide rest platforms after difficult sections.
+
+Do not place platforms in one straight line. Use turns, height changes, side jumps, vertical sections, and different routes. Make the course challenging but fair. Every jump must be possible, but careless players should fail.
+
+HORROR DECORATION:
+Add broken laboratory machines, warning signs, hanging wires, flickering monitors, broken glass, rusted metal, smoke, leaking steam, electrical sparks, red emergency alarms, dark wall stains, abandoned medical props, damaged doors, shadows, and mysterious silhouettes. Do not add the monster yet. Do not use random decorations; place everything according to the laboratory environment.
+
+LIGHTING:
+Do not brightly illuminate the entire map. Do not put a bright light on every platform. Use shadows, red emergency lights, weak blue lights, occasional white flickering lights, fog, smoke, and darkness. Keep the route barely visible but playable. Keep the void almost completely black. The lighting should feel dangerous and scary, not safe and bright.
+
+SOUNDS:
+Add distant metal banging, electrical buzzing, dripping water, steam release, flickering light sounds, distant alarms, low laboratory ambience, and unexplained sounds behind the player. Do not add monster chase music yet.
+
+IMPORTANT:
+Do not add the monster, keys, missions, or interactive doors yet. Focus on making the map large, long, detailed, scary, and full of varied obstacles. Test the route from the player's camera before finishing.
+
+
