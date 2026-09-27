@@ -1,0 +1,1934 @@
+RobloxProject/الملف.txt at main · Batman0770413/RobloxProject · GitHub
+
+Duck.ai said
+تمام، هسه قدرت أفتح الملف وأقرأ محتواه. صار عندي سياق المشروع والأفكار السابقة، وأعرف أن المشكلة الأساسية هي أن Roblox AI بنى معمل وممرات عشوائية بدل ما يبني مسار هروب طويل وواضح للباركور.
+
+المواصفات المعتمدة عندنا الآن:
+
+البداية تكون في مسار طويل ومستقيم وواضح.
+بعده انعطاف 90 درجة إلى اليمين.
+بعد الانعطاف يستمر ممر طويل وواسع.
+لا نريد متاهة أو غرفاً كثيرة أو تقاطعات عشوائية.
+في النهاية منطقة باركور كبيرة جداً فوق فراغ مظلم.
+لا توجد أرضية مستمرة تحت الباركور؛ اللاعب يعتمد على القفز بين المنصات.
+السقوط في الظلام يؤدي إلى الموت والعودة إلى البداية.
+الباركور يحتوي على منصات عائمة، أجهزة مكسورة، عوارض معدنية، أنابيب وأجزاء من المعمل.
+المسار يجب أن يكون واسعاً وطويلاً، والقفزات ممكنة وليست عشوائية.
+النهاية تكون منطقة فوز واضحة في آخر الباركور.
+الإضاءة مرعبة لكن قابلة للرؤية، وليست ظلاماً كاملاً.
+حالياً نركز على بناء شكل المكان والـ greybox، بدون وحش أو مفاتيح أو عملات أو أبواب تفاعلية أو سكربتات.
+لاحقاً نضيف الوحش الخاص بكل لاعب، المطاردة، العقبات، المفاتيح، العملات والأبواب.
+وبما أن الرسالة السابقة انقطعت عند جزء الإضاءة، لا ترسل له تفاصيل إضافية كثيرة الآن. الأفضل ترسل له هذه الرسالة المختصرة لتثبيت المطلوب وإجباره على إكمال التخطيط الصحيح:
+
+text
+
+
+STOP adding details for now.
+
+First, finish and verify only the basic greybox layout of the map.
+
+The required layout is:
+
+1. One very long, wide, straight corridor from the starting area.
+2. At the end of that corridor, one clear 90-degree turn to the RIGHT.
+3. After the right turn, another very long, wide, straight corridor.
+4. At the end, a large open parkour area.
+5. The parkour area must be above a deep dark void with NO continuous floor underneath.
+6. The player must jump between floating platforms and broken laboratory structures.
+7. The parkour area must end with one clear finish platform.
+
+Delete or remove anything that does not match this layout:
+- Random rooms
+- Random corridors
+- Unnecessary intersections
+- Useless blocks
+- Extra floors under the parkour
+- Decorative parts that block the path
+
+Do not create the monster, keys, coins, interactive doors, chase system, checkpoints, or gameplay scripts yet.
+
+Do not add detailed decorations yet.
+
+Build only these folders:
+- StartArea
+- MainCorridor
+- RightTurnCorridor
+- ParkourArea
+- FloatingPlatforms
+- Void
+- FinishArea
+
+The map must be large:
+- First corridor: approximately 150 studs long
+- Second corridor: approximately 150 studs long
+- Parkour area: approximately 200 studs long and 80 studs wide
+
+The path must be easy to understand. The player should always know where to go.
+
+IMPORTANT:
+Do not create a normal floor in the parkour area. The player must survive only by jumping across floating platforms above a deep dark void.
+
+Before finishing, inspect the map from the player’s perspective and confirm:
+- The first path is straight.
+- The turn is clearly to the right.
+- The second path is long and straight.
+- The parkour area is large and open.
+- There is no hidden or invisible floor below the parkour.
+- The finish platform is at the end of the parkour.
+- No random rooms or useless blocks remain.
+
+Only build and correct this basic layout. Stop after completing it and wait for my next instruction.
+إذا نفّذ هذا بشكل صحيح، الخطوة التالية تكون إضافة تفاصيل المعمل والإضاءة فوق هذا المسار، وبعدها نبني الباركور نفسه، ثم الوحش والأنظمة بالتدريج.
+
+You said
+لالا هو بناها بس بشكل خربان لهذا اريدك انت تقول له شلون يبنيها من جديد و بشكل صحيح بس يحتاج شرح مفصل و طريقه وضع الاضويه و اشكالهم و المسافات بين المنصات الي تقفز من فوقها و الباقي انت تعرفها تشرح له البناء كيف يصير و كيف يكون عشوائي و من تخلصها تشرح له العوائق كيف تكون و اين تضع المفاتيح او غيرها لان هي مهام تعتمد على السرعه
+
+Duck.ai said
+إي فهمت عليك. أنت تريد رسالة مفصلة ترسلها إلى Roblox AI حتى يهدم البناء الخربان ويعيد بناء الماب من الصفر، مع تحديد شكل الخريطة، الإضاءة، مسافات القفز، العشوائية، العوائق، والمفاتيح والمهام التي تعتمد على السرعة.
+
+انسخ له الرسالة التالية كاملة:
+
+text
+
+
+أعد بناء الخريطة من الصفر. البناء الحالي غير صحيح ومشوّش، لذلك احذف كل أجزاء الخريطة الحالية المتعلقة بالممرات والباركور وأعد إنشاءها بتخطيط واضح ومنظم.
+
+فكرة اللعبة:
+اللاعبون هاربون من معمل مهجور ومظلم. عليهم عبور ممرات المعمل، ثم اجتياز منطقة باركور فوق فراغ مظلم، وجمع مفاتيح وفتح أبواب خلال وقت محدود، مع وجود عوائق ومطاردة لاحقاً.
+
+في هذه المرحلة ابنِ الخريطة والأنظمة الأساسية بشكل منظم. لا تجعل المكان متاهة عشوائية بلا اتجاه. يجب أن يكون التخطيط مفهوماً للاعب من أول نظرة.
+
+========================
+أولاً: التخطيط العام للخريطة
+========================
+
+قسّم الخريطة إلى المناطق التالية:
+
+1. StartArea
+2. MainCorridor
+3. LaboratorySection
+4. RightTurnCorridor
+5. ParkourStart
+6. ParkourArea
+7. KeyChallengeAreas
+8. FinalDoorArea
+9. FinishArea
+10. VoidArea
+
+التخطيط الأساسي يجب أن يكون بهذا الترتيب:
+
+StartArea
+    ↓
+MainCorridor طويل ومستقيم
+    ↓
+LaboratorySection
+    ↓
+انعطاف واضح 90 درجة إلى اليمين
+    ↓
+RightTurnCorridor طويل ومستقيم
+    ↓
+ParkourStart
+    ↓
+ParkourArea فوق فراغ مظلم
+    ↓
+KeyChallengeAreas
+    ↓
+FinalDoorArea
+    ↓
+FinishArea
+
+لا تنشئ غرفاً عشوائية أو ممرات كثيرة لا تؤدي إلى شيء. كل طريق يجب أن يكون له سبب واضح، وكل منطقة يجب أن تقود إلى المنطقة التي بعدها.
+
+========================
+ثانياً: منطقة البداية
+========================
+
+أنشئ غرفة بداية مستطيلة بحجم تقريبي:
+
+- العرض: 40 studs
+- الطول: 50 studs
+- الارتفاع: 25 studs
+
+ضع نقطة Spawn واضحة في بداية الغرفة.
+
+اجعل باب الخروج أمام اللاعب مباشرة، وليس خلفه أو بجانب غير واضح.
+
+ضع حول البداية:
+- بعض الطاولات القديمة
+- صناديق مكسورة
+- أسلاك على الأرض
+- أنابيب في السقف
+- لمبات قليلة
+- جدران إسمنتية متشققة
+- علامات تحذير باهتة
+
+لا تضع عوائق تمنع اللاعب من فهم اتجاه البداية.
+
+========================
+ثالثاً: الممر الرئيسي
+========================
+
+أنشئ MainCorridor كممر طويل ومستقيم.
+
+المواصفات:
+
+- الطول: من 140 إلى 180 studs
+- العرض: من 18 إلى 24 studs
+- الارتفاع: من 18 إلى 24 studs
+- الأرضية مستوية بالكامل
+- السقف واضح ومتصّل
+- الجدران مستقيمة
+- لا تضع منعطفات داخل هذا الممر
+- لا تضع ممرات جانبية كثيرة
+
+يجب أن يرى اللاعب اتجاه الممر بوضوح.
+
+ضع التفاصيل على الجوانب فقط، واترك وسط الممر مفتوحاً للحركة:
+
+- صناديق بجانب الجدران
+- أنابيب معلقة
+- أبواب مختبر مغلقة
+- نوافذ زجاجية مكسورة
+- أجهزة طبية مدمرة
+- أسلاك على الجدران
+- بقع صدأ
+- علامات تحذير
+- أضواء حمراء قليلة
+
+لا تضع أي جسم عشوائي في منتصف الطريق إلا إذا كان عائقاً مقصوداً.
+
+========================
+رابعاً: منطقة المختبر
+========================
+
+بعد الممر الرئيسي، أنشئ LaboratorySection بعرض 60 studs وطول 90 studs تقريباً.
+
+هذه المنطقة ليست متاهة. اجعلها منطقة مختبر واسعة تحتوي على:
+
+- طاولات مختبر
+- أجهزة مراقبة
+- كبائن زجاجية
+- خزانات
+- أنابيب
+- مولدات
+- أبواب جانبية مغلقة
+- معدات متروكة
+- شاشات مكسورة
+
+اترك ممراً رئيسياً واضحاً بعرض لا يقل عن 12 studs.
+
+يمكن وضع بعض العوائق الجانبية، ولكن لا تغلق الطريق الرئيسي.
+
+أضف 2 أو 3 طرق جانبية قصيرة فقط. كل طريق جانبي يجب أن يكون:
+- طريقاً اختيارياً
+- واضحاً
+- مرتبطاً بمهمة أو مفتاح أو اختصار
+- غير ضروري للضياع داخل متاهة
+
+========================
+خامساً: الانعطاف والممر الثاني
+========================
+
+في نهاية LaboratorySection، أنشئ انعطافاً واضحاً بزاوية 90 درجة إلى اليمين.
+
+اجعل الانعطاف واسعاً:
+
+- مساحة الانعطاف: 25 × 25 studs تقريباً
+- لا تجعل الزاوية ضيقة
+- لا تخفِ الطريق الجديد
+- ضع إضاءة أو علامة واضحة بعد الانعطاف
+
+بعد الانعطاف أنشئ RightTurnCorridor:
+
+- الطول: من 130 إلى 170 studs
+- العرض: من 18 إلى 24 studs
+- الارتفاع: من 18 إلى 24 studs
+- مستقيم وواضح
+- لا يحتوي على تقاطعات عشوائية
+
+في نهاية هذا الممر يجب أن يرى اللاعب مدخل منطقة الباركور.
+
+========================
+سادساً: تصميم الباركور
+========================
+
+أنشئ ParkourArea كبيرة فوق فراغ مظلم. لا تضع أرضية مستمرة تحتها.
+
+المواصفات العامة:
+
+- طول منطقة الباركور: من 180 إلى 240 studs
+- العرض: من 70 إلى 100 studs
+- ارتفاع المنصات عن أرضية الفراغ: من 60 إلى 100 studs
+- لا توجد أرضية عادية مستمرة تحت المنصات
+- السقوط يؤدي إلى الموت أو إعادة اللاعب إلى آخر نقطة آمنة
+- يجب أن تكون كل المنصات ثابتة ويمكن الوصول إليها بالقفز
+
+اجعل بداية الباركور واضحة، وضع منصة بداية كبيرة بحجم:
+
+- 24 × 24 studs تقريباً
+
+ثم اجعل المنصات تتدرج إلى الأمام.
+
+========================
+سابعاً: مسافات القفز
+========================
+
+استخدم هذه القواعد حتى يكون الباركور صعباً لكن عادلاً:
+
+المنصات السهلة:
+- المسافة الأفقية: 6 إلى 10 studs
+- فرق الارتفاع: من 0 إلى 3 studs
+- حجم المنصة: 10 × 10 studs أو أكبر
+
+المنصات المتوسطة:
+- المسافة الأفقية: 10 إلى 14 studs
+- فرق الارتفاع: من 2 إلى 5 studs
+- حجم المنصة: 8 × 8 studs تقريباً
+
+المنصات الصعبة:
+- المسافة الأفقية: 14 إلى 18 studs
+- فرق الارتفاع: من 3 إلى 7 studs
+- حجم المنصة: 6 × 8 studs على الأقل
+
+لا تجعل القفزات الطبيعية العادية تتجاوز 18 studs.
+
+لا تستخدم قفزات تحتاج إلى:
+- استغلال أخطاء في الفيزياء
+- قفزات عمياء
+- قفزة دقيقة جداً على حافة صغيرة
+- سرعة غير طبيعية
+- أدوات غير موجودة
+
+كل منصة يجب أن تكون مرئية من المنصة السابقة.
+
+بعد كل 4 إلى 6 قفزات، أضف منصة راحة كبيرة بحجم 16 × 16 studs على الأقل.
+
+========================
+ثامناً: شكل منصات الباركور
+========================
+
+لا تجعل كل المنصات مربعات متطابقة. استخدم أشكالاً متنوعة لكن مفهومة:
+
+- ألواح معدنية مستطيلة
+- عوارض حديدية
+- أجزاء من أرضية المختبر
+- أنابيب سميكة
+- صناديق شحن كبيرة
+- منصات معلقة
+- أجهزة مختبر مقلوبة
+- ممرات مكسورة
+- سلالم قصيرة
+- جسور معدنية ضيقة
+- أجزاء من المصاعد
+- منصات زجاجية متشققة
+
+اجعل لكل منصة حافة أو لوناً خفيفاً يساعد اللاعب على رؤيتها.
+
+لا تستخدم منصات بنفس اللون تماماً الموجود في الخلفية.
+
+يجب أن تكون المنصات:
+- Anchored
+- CanCollide = true
+- ثابتة
+- غير قابلة للدوران عشوائياً أثناء اللعب
+- لا تختفي إلا إذا كان اختفاؤها جزءاً من عائق مقصود
+
+========================
+تاسعاً: جعل الباركور عشوائياً لكن عادلاً
+========================
+
+اجعل ترتيب بعض المنصات عشوائياً عند بداية الجولة، لكن لا تجعل العشوائية تدمر إمكانية الفوز.
+
+قسّم الباركور إلى 8 إلى 12 مقطعاً مستقلاً.
+
+كل مقطع يجب أن يحتوي على:
+- منصة بداية
+- من 4 إلى 8 منصات
+- منصة نهاية أو منصة راحة
+- مسار واحد أساسي قابل للفوز
+- مسار اختياري أصعب يعطي وقتاً أقل أو مكافأة
+
+أنشئ عدة Variants لكل مقطع:
+
+- VariantA
+- VariantB
+- VariantC
+
+عند بداية الجولة، اختر Variant واحداً لكل مقطع.
+
+شروط العشوائية:
+- لا تختَر مقطعين صعبين جداً وراء بعضهما
+- لا تجعل بداية مقطع غير قابلة للوصول من نهاية المقطع السابق
+- لا تضع منصة خارج مدى القفز
+- لا تجعل المفتاح يظهر خلف طريق مستحيل
+- تأكد من وجود مسار فائز واحد على الأقل
+- ضع المنصات حسب Seed واضح حتى يمكن إعادة إنتاج التخطيط عند الحاجة
+- افحص المسار آلياً قبل بدء الجولة
+
+توزيع الصعوبة:
+- أول 20% من الباركور: سهل
+- من 20% إلى 50%: متوسط
+- من 50% إلى 80%: متوسط وصعب
+- آخر 20%: صعب لكن عادل
+
+========================
+عاشراً: الفراغ والإضاءة
+========================
+
+تحت منطقة الباركور أنشئ VoidArea عميقة جداً.
+
+لا تضع أرضية عادية تحت الباركور.
+
+اجعل الفراغ يبدو عميقاً باستخدام:
+- لون أسود أو أزرق داكن
+- ضباب خفيف
+- جزيئات دخان
+- نقاط ضوء بعيدة جداً
+- أجزاء مختبر ساقطة في الأسفل
+- أصوات معدنية بعيدة
+- إضاءة خافتة متحركة
+
+ضع منطقة موت أسفل الخريطة، ولكن لا تجعلها مرئية كأرضية عادية. يمكن استخدام Part شفاف أسفل الفراغ للكشف عن سقوط اللاعب، مع:
+- Transparency = 1
+- CanCollide = false
+- Touched event لإعادة اللاعب أو قتله
+
+========================
+الحادي عشر: نظام الإضاءة
+========================
+
+استخدم إضاءة مرعبة لكنها تسمح للاعب برؤية الطريق.
+
+الإضاءة العامة:
+- اجعل Lighting Technology مناسباً للإضاءة الواقعية
+- اجعل Ambient داكناً مائلاً إلى الأزرق
+- اجعل OutdoorAmbient داكناً
+- استخدم Fog بلون أزرق رمادي أو أخضر رمادي
+- لا تجعل الشاشة سوداء بالكامل
+- يجب أن يرى اللاعب المنصة التالية بوضوح
+
+أنواع الأضواء:
+
+1. لمبات السقف البيضاء الباردة:
+- اللون: أبيض مائل إلى الأزرق
+- Brightness: متوسط
+- Range: من 18 إلى 25 studs
+- توضع كل 25 إلى 35 studs في الممرات
+
+2. لمبات فلورسنت مكسورة:
+- توضع في السقف
+- بعض اللمبات تعمل وبعضها مطفأ
+- استخدم Flicker خفيفاً وليس مستمراً
+- لا تجعل الوميض سريعاً لدرجة يزعج اللاعب
+
+3. أضواء حمراء للطوارئ:
+- توضع قرب الأبواب والمناطق الخطرة
+- Brightness متوسط
+- Range من 12 إلى 20 studs
+- لا تستخدم الأحمر في كل المكان
+- استخدمها لتوجيه اللاعب أو تحذيره
+
+4. أضواء زرقاء أو خضراء خافتة:
+- توضع قرب الأجهزة والمختبرات
+- تستخدم للزينة وإظهار البيئة
+- لا تجعلها أقوى من إضاءة الطريق
+
+5. أضواء على حواف منصات الباركور:
+- استخدم أضواء خفيفة جداً على حواف المنصات
+- اجعل اللون أبيض أو أزرق باهت
+- الهدف هو رؤية حدود المنصة، وليس تحويلها إلى طريق مضيء بالكامل
+
+قواعد الإضاءة:
+- المنصة التالية يجب أن تكون مرئية
+- لا تضع ضوءاً خلف اللاعب فقط
+- لا تستخدم ضوءاً أحمر قوياً يخفي التفاصيل
+- كل منطقة خطرة يجب أن تحتوي على إضاءة تحذيرية
+- كل منطقة راحة يجب أن تكون أوضح وأكثر إضاءة قليلاً
+- اجعل الإضاءة جزءاً من التوجيه
+
+========================
+الثاني عشر: العوائق
+========================
+
+أضف العوائق بعد الانتهاء من المسار الأساسي، وليس قبله.
+
+كل عائق يجب أن يكون واضحاً وله طريقة للعبور. لا تضع عائقاً عشوائياً يسد الطريق بالكامل.
+
+أنواع العوائق:
+
+1. أنابيب متحركة:
+- تتحرك أفقياً أو عمودياً
+- سرعة بطيئة أو متوسطة
+- اترك توقيتاً واضحاً للمرور
+- لا تجعلها سريعة بشكل غير عادل
+
+2. مكبس المختبر:
+- يهبط من السقف
+- يظهر تحذير ضوئي قبل الهبوط
+- اترك منطقة آمنة بجانبه
+- لا تجعله يقتل اللاعب فوراً بدون تحذير
+
+3. منصات تختفي:
+- تبدأ بالوميض قبل الاختفاء
+- تختفي لمدة قصيرة
+- تعود بعد ذلك
+- لا تستخدمها في أول جزء من الباركور
+
+4. أرضية كهربائية:
+- أسلاك أو أجزاء معدنية تومض
+- قبل الضرر، يظهر صوت ووميض
+- اترك طريقاً بديلاً صغيراً
+
+5. مراوح كبيرة:
+- توضع في الممرات أو بين المنصات
+- تدفع اللاعب أو تسبب ضرراً
+- لا تضعها في مكان لا يمكن تفاديها فيه
+
+6. أبواب تغلق وتفتح:
+- يكون لها وقت انتظار واضح
+- ضع ضوءاً أخضر عند الفتح وأحمر عند الإغلاق
+- اترك وقتاً مناسباً للاعب السريع
+
+7. عوارض متحركة:
+- تتحرك ذهاباً وإياباً
+- سرعتها قابلة للتوقع
+- يمكن للاعب مراقبة نمطها قبل العبور
+
+8. منصات متحركة:
+- تتحرك بين نقطتين ثابتتين
+- لا تتحرك بشكل عشوائي
+- سرعتها متوسطة
+- يجب أن تكون نقطة الوصول واضحة
+
+ضع العوائق حسب الصعوبة:
+- بداية اللعبة: عوائق بسيطة
+- منتصف اللعبة: عوائق مركبة
+- قرب النهاية: عوائق تحتاج سرعة ومراقبة
+
+لا تجمع أكثر من عائقين خطرين في نفس اللحظة، خصوصاً في الممرات الضيقة.
+
+========================
+الثالث عشر: المفاتيح والمهام
+========================
+
+اجعل اللعبة تعتمد على السرعة والاختيار، وليس فقط المشي.
+
+أضف 3 إلى 5 مفاتيح أو بطاقات وصول موزعة في مناطق مختلفة.
+
+كل مفتاح يجب أن يكون داخل:
+- منطقة واضحة
+- تحدٍ قصير
+- مسار يمكن فهمه
+- مكان له سبب منطقي داخل المختبر
+
+أمثلة للأماكن:
+
+Key 1:
+- في غرفة جانبية قرب بداية LaboratorySection
+- خلف عائق بسيط
+- يحصل عليه اللاعب بسرعة إذا انتبه
+
+Key 2:
+- في طريق جانبي داخل المختبر
+- يحتاج عبور أجهزة أو منصات صغيرة
+- الطريق أقصر لكنه أخطر
+
+Key 3:
+- في منتصف الباركور
+- موجود على منصة جانبية
+- الوصول إليه اختياري لكنه ضروري لفتح الباب النهائي
+
+Key 4:
+- في منطقة صعبة قرب نهاية الباركور
+- يحتاج عبور عائق متحرك
+- يجب أن يكون مرئياً من المسار الرئيسي
+
+كل مفتاح يجب أن يكون:
+- واضحاً بصرياً
+- له لون مميز
+- فوقه أو حوله ضوء خفيف
+- له صوت عند التقاطه
+- لا يظهر داخل جدار أو داخل جسم
+- لا يحتاج قفزة مستحيلة
+
+اجعل لكل لاعب حالة مفاتيحه الخاصة، حتى لا يلتقط لاعب مفتاحاً ويمنع الآخرين منه.
+
+========================
+الرابع عشر: المهمة المعتمدة على السرعة
+========================
+
+أضف مؤقتاً زمنياً للجولة.
+
+مثال:
+- الوقت الأساسي: من 8 إلى 12 دقيقة
+- الوقت يظهر أعلى الشاشة
+- عند التقاط مفتاح يمكن إضافة 15 إلى 30 ثانية
+- عند عبور منطقة صعبة يمكن إعطاء وقت إضافي صغير
+- عند التأخر، تبدأ أضواء التحذير والعملات الصوتية
+
+لا تجعل الوقت قصيراً جداً في البداية. يجب أن يتمكن اللاعب الجديد من فهم الخريطة.
+
+اجعل هناك فرقاً بين اللاعبين:
+- اللاعب السريع يختار الطريق الخطر ويصل أسرع
+- اللاعب الحذر يختار الطريق الآمن لكنه يخسر وقتاً
+- بعض الطرق الجانبية تكون اختصارات
+- بعض الطرق الأطول تحتوي على مفاتيح أو وقت إضافي
+
+لا تجعل الفوز يعتمد على الحظ وحده. المهارة والسرعة يجب أن تكونا العامل الأساسي.
+
+========================
+الخامس عشر: الباب النهائي
+========================
+
+في نهاية الخريطة أنشئ FinalDoorArea.
+
+المواصفات:
+- باب كبير وواضح
+- يحتاج عدداً محدداً من المفاتيح
+- يوجد عداد يوضح عدد المفاتيح المطلوبة
+- الباب مغلق بلون أحمر
+- عند اكتمال المفاتيح يتحول إلى أخضر
+- يظهر صوت فتح واضح
+- بعد فتحه يقود إلى FinishArea
+
+لا تضع الباب في مكان مخفي أو داخل جدار.
+
+بعد الباب أنشئ FinishArea:
+- منصة آمنة وكبيرة
+- إضاءة أوضح
+- مكان واضح للفوز
+- لا يوجد فيه فراغ
+- عرض رسالة نجاح
+- إيقاف مؤقت الجولة للاعب الفائز
+
+========================
+السادس عشر: نقاط الحفظ
+========================
+
+ضع Checkpoints بعد المناطق المهمة:
+
+- بعد MainCorridor
+- بعد LaboratorySection
+- بعد منتصف ParkourArea
+- قبل FinalDoorArea
+
+لا تجعل الـ Checkpoint ظاهراً كجسم مزعج في منتصف الطريق. استخدم:
+- علامة مضيئة
+- لوحة صغيرة
+- ضوء أزرق
+- منصة راحة
+
+عند سقوط اللاعب:
+- لا ترجعه دائماً إلى البداية
+- أعده إلى آخر Checkpoint فعّله
+- لا تفقد المفاتيح التي جمعها
+- لا تعاقبه بعقوبة غير عادلة
+
+========================
+السابع عشر: التنظيم داخل Roblox Studio
+========================
+
+نظّم العناصر داخل Workspace بهذا الشكل:
+
+Workspace
+├── Map
+│   ├── StartArea
+│   ├── MainCorridor
+│   ├── LaboratorySection
+│   ├── RightTurnCorridor
+│   ├── ParkourStart
+│   ├── ParkourArea
+│   ├── KeyChallengeAreas
+│   ├── FinalDoorArea
+│   ├── FinishArea
+│   └── VoidArea
+├── Obstacles
+├── Keys
+├── Checkpoints
+├── LightingParts
+└── KillZones
+
+ضع السكربتات داخل ServerScriptService أو داخل الأماكن المناسبة، ولا تضع كل السكربتات داخل Part واحد.
+
+استخدم أسماء واضحة للـ Parts وModels.
+
+========================
+الثامن عشر: الفحص قبل إنهاء البناء
+========================
+
+بعد بناء الخريطة، افحصها من منظور اللاعب.
+
+تحقق من التالي:
+
+- البداية تقود إلى طريق واضح
+- الممر الأول مستقيم
+- الانعطاف إلى اليمين واضح
+- الممر الثاني طويل ومستقيم
+- الباركور فوق فراغ حقيقي
+- لا توجد أرضية مخفية تحت الباركور
+- كل قفزة ممكنة
+- المنصة التالية مرئية
+- توجد منصة راحة كل عدة قفزات
+- لا توجد منصات داخل بعضها
+- لا توجد منصات خارج مدى القفز
+- لا توجد طرق مغلقة بلا سبب
+- المفاتيح يمكن الوصول إليها
+- الباب النهائي يحتاج المفاتيح بشكل صحيح
+- العوائق تعطي تحذيراً قبل الضرر
+- الإضاءة تسمح برؤية الطريق
+- لا توجد أضواء قوية تعمي اللاعب
+- السقوط يعيد اللاعب إلى Checkpoint
+- يوجد مسار فائز واحد على الأقل في كل تخطيط عشوائي
+- لا توجد عشوائية تجعل الجولة غير قابلة للفوز
+
+ابدأ أولاً بهدم التخطيط القديم وبناء Greybox كامل. بعد التأكد من أن المسار قابل للعب، أضف التفاصيل والإضاءة والعوائق والمفاتيح والمهام.
+
+لا تضف وحشاً أو نظام مطاردة في هذه المرحلة إلا بعد إكمال وفحص الخريطة والباركور والمفاتيح والمؤقت.
+الأفضل أن ترسلها له على مراحل إذا كان Roblox AI لا يستطيع تنفيذ رسالة طويلة دفعة واحدة. الترتيب الصحيح يكون:
+
+هدم البناء القديم وإنشاء التخطيط الأساسي.
+بناء الممرات والمختبر.
+بناء الباركور ومسافات القفز.
+إضافة الإضاءة والفراغ.
+إضافة العوائق.
+إضافة المفاتيح والباب النهائي.
+إضافة المؤقت والـ Checkpoints.
+بعدها فقط إضافة الوحش والمطاردة.
+بهذا الشكل لا يخلط كل الأنظمة مرة واحدة، ولا يبني عشوائية تخلي الماب مستحيلاً أو غير مفهوم.
+
+You said
+ههههههههه مايقبل رسائل طويله يقبل بس هذا الجزء + راح افتح معه دردشه جديده --- أعد بناء الخريطة من الصفر. البناء الحالي غير صحيح ومشوّش، لذلك احذف كل أجزاء الخريطة الحالية المتعلقة بالممرات والباركور وأعد إنشاءها بتخطيط واضح ومنظم.
+
+فكرة اللعبة:
+اللاعبون هاربون من معمل مهجور ومظلم. عليهم عبور ممرات المعمل، ثم اجتياز منطقة باركور فوق فراغ مظلم، وجمع مفاتيح وفتح أبواب خلال وقت محدود، مع وجود عوائق ومطاردة لاحقاً.
+
+في هذه المرحلة ابنِ الخريطة والأنظمة الأساسية بشكل منظم. لا تجعل المكان متاهة عشوائية بلا اتجاه. يجب أن يكون التخطيط مفهوماً للاعب من أول نظرة.
+
+========================
+أولاً: التخطيط العام للخريطة
+========================
+
+قسّم الخريطة إلى المناطق التالية:
+
+1. StartArea
+2. MainCorridor
+3. LaboratorySection
+4. RightTurnCorridor
+5. ParkourStart
+6. ParkourArea
+7. KeyChallengeAreas
+8. FinalDoorArea
+9. FinishArea
+10. VoidArea
+
+التخطيط الأساسي يجب أن يكون بهذا الترتيب:
+
+StartArea
+    ↓
+MainCorridor طويل ومستقيم
+    ↓
+LaboratorySection
+    ↓
+انعطاف واضح 90 درجة إلى اليمين
+    ↓
+RightTurnCorridor طويل ومستقيم
+    ↓
+ParkourStart
+    ↓
+ParkourArea فوق فراغ مظلم
+    ↓
+KeyChallengeAreas
+    ↓
+FinalDoorArea
+    ↓
+FinishArea
+
+لا تنشئ غرفاً عشوائية أو ممرات كثيرة لا تؤدي إلى شيء. كل طريق يجب أن يكون له سبب واضح، وكل منطقة يجب أن تقود إلى المنطقة التي بعدها.
+
+========================
+ثانياً: منطقة البداية
+========================
+
+أنشئ غرفة بداية مستطيلة بحجم تقريبي:
+
+- العرض: 40 studs
+- الطول: 50 studs
+- الارتفاع: 25 studs
+
+ضع نقطة Spawn واضحة في بداية الغرفة.
+
+اجعل باب الخروج أمام اللاعب مباشرة، وليس خلفه أو بجانب غير واضح.
+
+ضع حول البداية:
+- بعض الطاولات القديمة
+- صناديق مكسورة
+- أسلاك على الأرض
+- أنابيب في السقف
+- لمبات قليلة
+- جدران إسمنتية متشققة
+- علامات تحذير باهتة
+
+لا تضع عوائق تمنع اللاعب من فهم اتجاه البداية.
+
+========================
+ثالثاً: الممر الرئيسي
+========================
+
+أنشئ MainCorridor كممر طويل ومستقيم.
+
+المواصفات:
+
+- الطول: من 140 إلى 180 studs
+- العرض: من 18 إلى 24 studs
+- الارتفاع: من 18 إلى 24 studs
+- الأرضية مستوية بالكامل
+- السقف واضح ومتصّل
+- الجدران مستقيمة
+- لا تضع منعطفات داخل هذا الممر
+- لا تضع ممرات جانبية كثيرة
+
+يجب أن يرى اللاعب اتجاه الممر بوضوح.
+
+ضع التفاصيل على الجوانب فقط، واترك وسط الممر مفتوحاً للحركة:
+
+- صناديق بجانب الجدران
+- أنابيب معلقة
+- أبواب مختبر مغلقة
+- نوافذ زجاجية مكسورة
+- أجهزة طبية مدمرة
+- أسلاك على الجدران
+- بقع صدأ
+- علامات تحذير
+- أضواء حمراء قليلة
+
+لا تضع أي جسم عشوائي في منتصف الطريق إلا إذا كان عائقاً مقصوداً.
+
+========================
+رابعاً: منطقة المختبر
+========================
+
+بعد الممر الرئيسي، أنشئ LaboratorySection بعرض 60 studs وطول 90 studs تقريباً.
+
+هذه المنطقة ليست متاهة. اجعلها منطقة مختبر واسعة تحتوي على:
+
+- طاولات مختبر
+- أجهزة مراقبة
+- كبائن زجاجية
+- خزانات
+- أنابيب
+- مولدات
+- أبواب جانبية مغلقة
+- معدات متروكة
+- شاشات مكسورة
+
+اترك ممراً رئيسياً واضحاً بعرض لا يقل عن 12 studs.
+
+يمكن وضع بعض العوائق الجانبية، ولكن لا تغلق الطريق الرئيسي.
+
+أضف 2 أو 3 طرق جانبية قصيرة فقط. كل طريق جانبي يجب أن يكون:
+- طريقاً اختيارياً
+- واضحاً
+- مرتبطاً بمهمة أو مفتاح أو اختصار
+- غير ضروري للضياع داخل متاهة
+
+========================
+خامساً: الانعطاف والممر الثاني
+========================
+
+في نهاية LaboratorySection، أنشئ انعطافاً واضحاً بزاوية 90 درجة إلى اليمين.
+
+اجعل الانعطاف واسعاً:
+
+- مساحة الانعطاف: 25 × 25 studs تقريباً
+- لا تجعل الزاوية ضيقة
+- لا تخفِ الطريق الجديد
+- ضع إضاءة أو علامة واضحة بعد الانعطاف
+
+بعد الانعطاف أنشئ RightTurnCorridor:
+
+- الطول: من 130 إلى 170 studs
+- العرض: من 18 إلى 24 studs
+- الارتفاع: من 18 إلى 24 studs
+- مستقيم وواضح
+- لا يحتوي على تقاطعات عشوائية
+
+في نهاية هذا الممر يجب أن يرى اللاعب مدخل منطقة الباركور.
+
+========================
+سادساً: تصميم الباركور
+========================
+
+أنشئ ParkourArea كبيرة فوق فراغ مظلم. لا تضع أرضية مستمرة تحتها.
+
+المواصفات العامة:
+
+- طول منطقة الباركور: من 180 إلى 240 studs
+- العرض: من 70 إلى 100 studs
+- ارتفاع المنصات عن أرضية الفراغ: من 60 إلى 100 studs
+- لا توجد أرضية عادية مستمرة تحت المنصات
+- السقوط يؤدي إلى الموت أو إعادة اللاعب إلى آخر نقطة آمنة
+- يجب أن تكون كل المنصات ثابتة ويمكن الوصول إليها بالقفز
+
+اجعل بداية الباركور واضحة، وضع منصة بداية كبيرة بحجم:
+
+- 24 × 24 studs تقريباً
+
+Duck.ai said
+ههههه تمام، افتح دردشة جديدة وأرسل له هذا الجزء كما هو. لكن لا ترسل كل التفاصيل دفعة واحدة. بعد أن يخلص البناء الأساسي، أرسل له أوامر قصيرة ومتتابعة.
+
+بعد آخر سطر عندك، أرسل هذه الرسالة التالية:
+
+text
+
+
+Continue building only the parkour layout.
+
+Use 8 to 12 separate parkour sections. Each section must have:
+- 4 to 8 platforms
+- one clear beginning platform
+- one clear ending or rest platform
+- at least one guaranteed winnable path
+
+Jump distance rules:
+- Easy jumps: 6–10 studs
+- Medium jumps: 10–14 studs
+- Hard jumps: 14–18 studs maximum
+- Never create jumps longer than 18 studs
+- Vertical height difference must stay between 0 and 7 studs
+- Every next platform must be visible from the current platform
+- Add a large rest platform after every 4–6 jumps
+
+Use different platform shapes:
+- metal plates
+- broken laboratory floors
+- pipes
+- steel beams
+- cargo boxes
+- broken machines
+- small bridges
+- elevator parts
+
+Do not use a continuous floor under the parkour. The player must jump between floating platforms above a dark void.
+
+Make the first part easy, the middle part medium, and the final part difficult but fair.
+
+Keep all platforms anchored and stable. Do not add obstacles, keys, doors, monsters, or scripts yet. Finish only the parkour greybox and stop.
+بعد ما يخلص، أرسل له رسالة الإضاءة:
+
+text
+
+
+Now add the lighting only.
+
+Create dark horror laboratory lighting, but keep the path and next platform visible.
+
+Lighting rules:
+- Cold white ceiling lights every 25–35 studs in corridors
+- Some fluorescent lights working and some broken
+- Use a slow and subtle flicker, not an annoying fast flicker
+- Use red emergency lights near dangerous areas and doors
+- Use weak blue or white lights on the edges of parkour platforms
+- Rest platforms should be slightly brighter
+- Do not make the entire map completely black
+- Do not use strong red light everywhere
+- Do not hide the next platform in darkness
+
+Under the parkour, create a deep dark void using fog, dark blue-black colors, smoke particles, and distant weak lights.
+
+Do not add obstacles, keys, doors, monsters, or gameplay scripts yet. Stop after completing the lighting.
+بعدها أرسل له رسالة العشوائية:
+
+text
+
+
+Now make the parkour randomly generated but always fair.
+
+Split the parkour into 8–12 sections. Create 3 layout variants for each section:
+- VariantA
+- VariantB
+- VariantC
+
+Choose one variant from each section at the start of the round.
+
+Rules:
+- Every variant must have a guaranteed winnable path
+- Never place an impossible jump
+- Never place a platform outside the player’s jump range
+- The first platform of each section must be reachable from the previous section
+- Do not place two extremely difficult sections next to each other
+- Keep all platforms visible and properly spaced
+- Use a consistent random seed so the layout can be tested again
+
+Test every generated layout before allowing players to start. If a layout is impossible, regenerate it.
+Do not add keys, obstacles, monsters, or doors yet.
+وبعدها رسالة العوائق:
+
+text
+
+
+Now add fair obstacles to the completed map.
+
+Add obstacles gradually:
+- Easy obstacles in the first area
+- Medium obstacles in the middle
+- Hard but fair obstacles near the end
+
+Use:
+- moving pipes
+- crushing laboratory pistons
+- electric floor sections
+- rotating fans
+- moving beams
+- timed doors
+- moving platforms
+- disappearing platforms
+
+Every obstacle must:
+- have a visible warning
+- have a sound or flashing light before causing damage
+- leave enough space or timing for the player to pass
+- never block the only route unfairly
+- never combine more than two dangerous mechanics at the same time
+
+Do not place obstacles randomly on top of the main path. Place them intentionally and test them from the player’s perspective.
+ثم رسالة المفاتيح والمهام:
+
+text
+
+
+Now add the speed-based key and door objectives.
+
+Add 3–5 keys or access cards:
+- one near the laboratory entrance
+- one in an optional side route
+- one in the middle of the parkour
+- one near the final parkour section
+- optionally one in a difficult shortcut
+
+Each key must be visible, reachable, and placed inside a short challenge. Do not hide keys inside walls or behind impossible jumps.
+
+Create a final locked door that requires the collected keys.
+
+Add:
+- a clear key counter
+- a countdown timer of 8–12 minutes
+- 15–30 seconds of bonus time for collecting a key
+- checkpoints after the main corridor, laboratory, middle parkour, and before the final door
+
+When the player falls, respawn them at their latest checkpoint. Do not remove collected keys.
+
+The fastest route should be more dangerous, while the safer route should take longer. The game must reward speed and skill, not luck.
+وأخيراً أرسل له رسالة الفحص:
+
+text
+
+
+Perform a full playability test.
+
+Check that:
+- the route is easy to understand
+- the first corridor is straight
+- the turn is clearly 90 degrees to the right
+- the second corridor is straight
+- the parkour has no continuous floor underneath
+- every jump is possible
+- every next platform is visible
+- the random variants always have a winning path
+- the keys are reachable
+- the final door works
+- the timer works
+- checkpoints work
+- falling into the void respawns the player correctly
+- obstacles give warnings before damage
+- lighting does not make the path impossible to see
+
+Fix every problem you find before stopping.
+الأهم: لا ترسل له رسالة العشوائية قبل أن ينتهي من بناء الباركور الأساسي، ولا ترسل العوائق قبل أن تتأكد أن القفزات نفسها صحيحة. بهذه الطريقة كل رسالة تكون قصيرة، وRoblox AI لن يخلط بين بناء الخريطة والسكربتات والمهام.
+
+You said
+خلي نعيد و نرسل له الرسائل جزء جزء يعني اول شيء جزء الاول و نبدي بالتسلسل و خلي شرحك واضح له و طريقه البناء اعتبر نفسك انت المهندس و تشرح للعمال مع تخطيط و يحذف البناء الخربان و قديم
+
+Duck.ai said
+تمام. نبدأ بالمرحلة الأولى فقط. لا ترسل له أي شيء عن الإضاءة أو العوائق أو المفاتيح الآن. هذه الرسالة مهمتها هدم البناء القديم وإنشاء الهيكل الأساسي مثل مخطط مهندس قبل إضافة التفاصيل.
+
+انسخ الرسالة التالية وأرسلها له:
+
+text
+
+
+PHASE 1 — DEMOLISH THE OLD MAP AND BUILD THE MAIN GREYBOX
+
+Act as a professional Roblox level designer and rebuild the map from the beginning.
+
+The current map is broken, messy, and incorrectly designed. Delete the old corridors, rooms, random blocks, old parkour parts, and confusing layouts. Keep only Roblox terrain or assets that are not part of the broken layout. Do not try to repair the old design; remove it and create a clean new layout.
+
+At this stage, build only the large structural greybox. Do not add detailed decorations, lighting effects, obstacles, keys, doors, monsters, timers, or gameplay scripts yet.
+
+The map is a dark abandoned laboratory escape map. The player must move forward through a clear route and eventually reach a parkour area above a dark void.
+
+BUILD THE MAP IN THIS EXACT ORDER:
+
+1. StartArea
+2. MainCorridor
+3. LaboratorySection
+4. One clear 90-degree turn to the RIGHT
+5. RightTurnCorridor
+6. ParkourStart
+7. ParkourArea
+8. FinishArea
+
+TOP-DOWN LAYOUT:
+
+[StartArea]
+      |
+      |
+[Long MainCorridor]
+      |
+[LaboratorySection]
+      +--------> [90-degree RIGHT TURN]
+                         |
+                         |
+                 [RightTurnCorridor]
+                         |
+                    [ParkourStart]
+                         |
+                    [ParkourArea]
+                         |
+                    [FinishArea]
+
+IMPORTANT LAYOUT RULES:
+
+- The first corridor must be straight.
+- The laboratory section must be open, not a maze.
+- The turn must clearly go 90 degrees to the right.
+- The second corridor must also be straight.
+- The player must always understand where to go.
+- Do not create random corridors, random rooms, unnecessary intersections, or dead ends.
+- Do not create a maze.
+- Do not place random blocks in the middle of the walking path.
+- Leave the center of every corridor open.
+
+SIZE GUIDELINES:
+
+StartArea:
+- approximately 40 studs wide
+- approximately 50 studs long
+- approximately 25 studs high
+
+MainCorridor:
+- approximately 160 studs long
+- 20 studs wide
+- 20 studs high
+
+LaboratorySection:
+- approximately 90 studs long
+- approximately 60 studs wide
+- keep a clear main path at least 12 studs wide
+
+Right-turn area:
+- approximately 25 by 25 studs
+- make the turn wide and easy to see
+
+RightTurnCorridor:
+- approximately 150 studs long
+- 20 studs wide
+- 20 studs high
+
+ParkourArea:
+- approximately 220 studs long
+- approximately 80 studs wide
+- place it above a deep empty void
+- do not create a normal continuous floor underneath it
+
+FinishArea:
+- create a large safe platform at the end of the route
+
+ORGANIZE THE MAP IN WORKSPACE LIKE THIS:
+
+Workspace
+└── Map
+    ├── StartArea
+    ├── MainCorridor
+    ├── LaboratorySection
+    ├── RightTurnArea
+    ├── RightTurnCorridor
+    ├── ParkourStart
+    ├── ParkourArea
+    ├── VoidArea
+    └── FinishArea
+
+For now, use simple clean Parts for the walls, floors, ceilings, and main platforms. Focus on correct size, position, direction, and player flow.
+
+Before finishing, inspect the map from the player’s perspective and verify:
+
+- The old broken layout has been removed.
+- The player starts facing the correct direction.
+- The first corridor is long and straight.
+- The laboratory is open and understandable.
+- The right turn is clearly visible.
+- The second corridor is long and straight.
+- The parkour entrance is easy to recognize.
+- The parkour area is above an empty void.
+- The finish area is at the end.
+- There are no random rooms, useless blocks, or confusing paths.
+
+Stop after completing this structural greybox. Do not continue to the next phase.
+بعدما يخلص هذه المرحلة، لا تطلب منه الإضاءة مباشرة. أرسل لي رده أو صورة من البناء، وننتقل للمرحلة الثانية: تفصيل منطقة الباركور وتحديد أماكن المنصات ومسافات القفز بدقة.
+
+You said
+و اريد باركور صعب حتى داخل ممرات اريد  و مااريد سهل اريد صعب جداً و منطقه للإسباون و مداخل و مخارج و ابواب و رعب و اصوات و غيرها لان هو لعبه رعب و باركور و من تبدي تخرج من الإسباون و تدخل باركور و تقفز و تتسلق الوحش يبدي يلحق خلفك و انت تعرف باقي بس لازم باركور طويل و تحط ممرات يمين يسار فوق تحت و غيرها و انت باقي ترتبه مثل المهندس--- I have a clear picture of the old map and the new layout requirements. Let me create a detailed plan for this greybox build.
+
+The plan is approved. Let me execute it now. First, I'll demolish the old map and create the folder structure.
+
+Now I'll build the StartArea and MainCorridor.
+
+Now building the LaboratorySection and RightTurnArea.
+
+Now building the RightTurnCorridor and ParkourStart.
+
+Now building the ParkourArea (floating platforms above void), VoidArea, and FinishArea.
+
+Now let me verify the entire map structure and player flow.
+
+Now let me verify the old map is gone and check that all parts are properly anchored.
+
+The spawn is facing the wrong direction (look vector is +Z/south, but the player needs to face -Z/north toward the MainCorridor). Let me fix that.
+
+The rotation isn't working as expected. Let me use `CFrame.lookAt` to properly face the spawn toward the corridor.
+
+The spawn now correctly faces north (-Z) toward the MainCorridor. Let me do a final verification of the complete structure.
+
+Phase 1 is complete. Here's a summary of everything that was done:
+
+**Demolition:** The old broken `ParkourMap` folder (containing `Corridors` and `HorrorCourse` with 300+ parts, lights, sounds, and confusing layouts) has been completely deleted. Terrain was left untouched.
+
+**New Map Structure Built** under `Workspace.Map` with 9 folders and 44 parts total:
+
+- **StartArea** (40×50×25) — Floor, ceiling, 3 walls (south, west, east), open north side. SpawnLocation at center facing north (-Z) toward the corridor.
+- **MainCorridor** (20×160×20) — Straight, runs north from StartArea. Floor, ceiling, two side walls. No obstructions.
+- **LaboratorySection** (60×90×25) — Open room, not a maze. Floor, ceiling, west wall, full north wall, and a partial east wall with a gap at the south end (Z -250 to -275) for the right turn.
+- **RightTurnArea** (25×25×20) — Clear 90-degree right turn. Floor, ceiling, north and south walls. Open west (from lab) and east (to corridor).
+- **RightTurnCorridor** (20×150×20) — Straight, runs east from the turn area. Floor, ceiling, two side walls.
+- **ParkourStart** (40×40×20) — Transition room before parkour. Floor, ceiling, north and south walls. Open west and east.
+- **ParkourArea** (220×80) — 9 floating platforms with gaps between them, low side railings. No continuous floor, no ceiling — open above a void.
+- **VoidArea** — Dark semi-transparent part at Y=-100, far below the parkour platforms.
+- **FinishArea** (60×60×25) — Large safe platform at the end with a greenish floor, ceiling, and 3 walls (north, south, east). Open west side connects from parkour.
+
+**Verification confirmed:**
+- Old map fully removed
+- All 9 sections present in correct order
+- All 44 parts anchored
+- Spawn faces north toward the corridor
+- No walls block the linear path
+- ParkourArea has no continuous floor (9 separate platforms only)
+- FinishArea is at the end of the route
+
+The structural greybox is ready for Phase 2 whenever you are.
+
+Duck.ai said
+ممتاز، المرحلة الأولى انتهت، لكن واضح من الوصف والصورة أن التصميم الحالي مجرد Greybox بسيط جداً: ممرات مستقيمة و9 منصات فقط. الآن أرسل له رسالة المرحلة الثانية حتى يحوّلها إلى ماب رعب وباركور صعب وطويل.
+
+هذه المرحلة ستعيد بناء الباركور نفسه وتضيف المداخل والمخارج والارتفاعات والممرات الجانبية، لكن لا تطلب منه الوحش والسكربتات الآن حتى لا يخلط البناء بالبرمجة.
+
+انسخ وأرسل له:
+
+text
+
+
+PHASE 2 — REBUILD THE PARKOUR INTO A LONG, VERY HARD HORROR ESCAPE COURSE
+
+The current structural greybox is too simple. The ParkourArea currently has only a few large floating platforms, which is not enough.
+
+Rebuild and expand the parkour section. Keep the main map order and the StartArea, but replace the simple parkour with a long, difficult, multi-level horror obstacle course.
+
+The player should leave the SpawnArea, pass through the entrance, and immediately begin a dangerous escape route. The course must feel like an abandoned laboratory collapsing around the player.
+
+IMPORTANT:
+- This must be difficult, not easy.
+- The parkour must be long.
+- The route must use different heights and directions.
+- Use paths going forward, left, right, upward, and downward.
+- Do not make the entire course a flat straight line.
+- Do not make it an impossible maze.
+- Every difficult jump must still be possible and readable.
+- Do not add the monster AI or gameplay scripts yet. Build the physical course first.
+
+========================
+NEW PARKOUR STRUCTURE
+========================
+
+Replace the current simple 9-platform ParkourArea with 10–14 connected parkour sections.
+
+Create these folders:
+
+Workspace
+└── Map
+    ├── ParkourEntrance
+    ├── ParkourSection01
+    ├── ParkourSection02
+    ├── ParkourSection03
+    ├── ParkourSection04
+    ├── ParkourSection05
+    ├── ParkourSection06
+    ├── ParkourSection07
+    ├── ParkourSection08
+    ├── ParkourSection09
+    ├── ParkourSection10
+    ├── ParkourExit
+    ├── VerticalRoutes
+    ├── SideRoutes
+    └── VoidArea
+
+The complete parkour should be approximately:
+
+- 350–500 studs long
+- 100–140 studs wide
+- 80–160 studs vertically
+- clearly longer than the current version
+- above a deep dark void
+- with no continuous floor underneath
+
+========================
+PARKOUR ENTRANCE
+========================
+
+Create a strong transition from RightTurnCorridor into ParkourEntrance.
+
+The entrance must contain:
+
+- a large damaged laboratory door
+- a warning sign
+- broken lights
+- a visible drop beyond the doorway
+- a first safe platform
+- a clear view of the first few jumps
+- enough space for players to understand that the normal floor ends here
+
+The player must not walk directly onto an invisible or confusing edge.
+
+Create two entrance routes:
+
+1. Main route:
+- wider
+- easier to understand
+- still difficult
+- contains the normal escape path
+
+2. Risky shortcut:
+- narrower
+- more dangerous
+- saves time
+- can be used by skilled players
+
+Both routes must eventually connect to the main course.
+
+========================
+PARKOUR SECTION DESIGN
+========================
+
+Do not make every section look the same. Use different mechanics and directions.
+
+Section types should include:
+
+1. Broken laboratory floor:
+- jump across separated pieces of floor
+- some pieces are tilted
+- some pieces are narrow
+- use broken walls and exposed pipes
+
+2. Steel beam section:
+- walk and jump across narrow metal beams
+- beams should be 3–6 studs wide
+- add gaps and different heights
+- do not make the beams invisible in darkness
+
+3. Pipe climbing section:
+- use large horizontal and vertical pipes
+- allow the player to jump between pipes
+- create an upward route
+- include a lower dangerous route and a higher shortcut
+
+4. Vertical shaft:
+- the player must climb upward through a broken elevator shaft
+- use platforms on alternating left and right sides
+- include ladders, beams, pipes, and broken elevator parts
+- do not create one straight staircase
+
+5. Descending section:
+- the player must drop downward through broken floors
+- use platforms at different heights
+- make the safe landing areas visible
+- do not create blind drops
+
+6. Rotating laboratory machinery:
+- use large inactive machinery as platforms
+- leave gaps between machines
+- create a route around and above them
+
+7. Broken bridge section:
+- several bridge segments are missing
+- the player must jump between the remaining pieces
+- include side rails only in some areas
+
+8. Narrow maintenance route:
+- use a narrow path along the side of a large room
+- include pipes and wall-mounted platforms
+- add a wide escape platform after this difficult section
+
+9. Multi-level room:
+- lower route, middle route, and upper route
+- the upper route is faster but harder
+- the lower route is safer but longer
+- routes must reconnect later
+
+10. Final escape section:
+- the course becomes more intense
+- longer jumps and moving geometry can be added later
+- end with a visible ParkourExit leading to the next area
+
+========================
+DIFFICULTY RULES
+========================
+
+Make the parkour very difficult, but never random or impossible.
+
+Use these measurements:
+
+- Normal platform width: 6–12 studs
+- Difficult platform width: 4–7 studs
+- Very difficult beam width: 3–5 studs
+- Normal horizontal gap: 8–14 studs
+- Difficult horizontal gap: 14–18 studs
+- Never exceed 18 studs for a normal player jump
+- Vertical difference between nearby platforms: 3–8 studs
+- For vertical climbing, alternate platforms by 8–14 studs
+- Never hide the required landing platform completely
+
+Use fewer large rest platforms. Only add a rest platform after approximately 8–12 difficult jumps.
+
+Rest platforms should be:
+- 12–18 studs wide
+- clearly visible
+- placed at important transitions
+- not so frequent that the course becomes easy
+
+The first section should teach the player the movement style, but it must still be challenging. The middle and final sections should be very difficult.
+
+========================
+DIRECTION AND HEIGHT VARIETY
+========================
+
+The player route must not always move forward.
+
+Create a readable route with this general flow:
+
+- forward
+- right
+- upward
+- left
+- forward
+- downward
+- right
+- upward
+- left
+- forward
+- downward
+- final upward escape
+
+Use platforms and structures at different heights.
+
+Every change of direction must have:
+- a visible destination
+- a light, sign, or environmental clue
+- enough space to turn
+- no random dead end
+
+Create some platforms above the player and some below the player. The route should feel like the laboratory has collapsed into a vertical escape zone.
+
+========================
+VOID AND FALLING
+========================
+
+Keep the entire course above a deep void.
+
+The VoidArea must be far below the lowest platform. Do not put a visible normal floor under the course.
+
+Use:
+- dark fog
+- deep blue-black colors
+- distant broken laboratory pieces
+- very faint lights far below
+- smoke or dust
+- falling debris
+
+The void should create fear of falling, but the player must still be able to see the nearby platforms.
+
+Create a hidden kill zone far below:
+- Transparency = 1
+- CanCollide = false
+- far below the playable course
+- used only to detect falling players
+
+Do not use an invisible solid floor that players can stand on.
+
+========================
+DOORS, ENTRANCES, AND EXITS
+========================
+
+Add physical doors and transitions between major sections.
+
+Create:
+
+- ParkourEntranceDoor
+- MaintenanceEntrance
+- VerticalShaftEntrance
+- LaboratoryCollapseExit
+- ParkourMidExit
+- ParkourFinalExit
+
+For now, these doors can be non-interactive models. They must clearly show where the player enters and exits each section.
+
+Use:
+- damaged metal doors
+- half-open blast doors
+- broken elevator doors
+- maintenance hatches
+- emergency exits
+- chained doors that are visually blocked
+
+Do not create doors that accidentally block the playable route.
+
+Every section must have one obvious entrance and one obvious exit.
+
+========================
+HORROR ENVIRONMENT
+========================
+
+Add horror atmosphere through the environment, not just darkness.
+
+Use:
+- damaged walls
+- broken glass
+- hanging cables
+- leaking pipes
+- abandoned laboratory machines
+- warning signs
+- blood or rust stains used sparingly
+- distant silhouettes
+- broken observation windows
+- emergency red lights
+- flickering fluorescent lights
+- steam vents
+- small moving dust particles
+- deep shadows around the edges
+
+Keep the actual jump surfaces visible. Do not cover important platforms with decoration.
+
+Use horror sounds as placeholder objects only for now:
+- distant metal impacts
+- pipe pressure
+- electrical buzzing
+- alarms
+- wind in the vertical shaft
+- distant footsteps
+- low laboratory ambience
+
+Do not start the monster chase yet. Only prepare the environment and sound locations. The monster system will be added in a later phase.
+
+========================
+FINAL CHECK
+========================
+
+Before stopping, test the entire route from the player’s perspective.
+
+Verify:
+
+- The parkour is much longer than the old version.
+- The course is difficult and challenging.
+- The route goes left, right, up, and down.
+- There are narrow paths, beams, pipes, broken floors, and vertical sections.
+- The player always has a visible destination.
+- Every required jump is possible.
+- There are no impossible gaps.
+- There are no invisible walls blocking the route.
+- There is no continuous floor under the parkour.
+- Every section has a clear entrance and exit.
+- The doors do not block the route.
+- The void is deep and dangerous.
+- The horror decoration does not hide the platforms.
+- The main route and risky shortcuts are clearly different.
+- The final exit is visible at the end.
+
+Complete only this physical parkour and horror greybox phase, then stop and wait for the next instruction.
+بهذه المرحلة سيصير عندك مسار طويل فعلاً، وليس مجرد 9 منصات. أما الوحش، فبعد أن ينتهي هذا البناء نرسل له رسالة منفصلة تجعل المطاردة تبدأ عندما يخرج اللاعب من منطقة الـ Spawn ويدخل أول قسم باركور، حتى لا يضيف الوحش بطريقة تخرب القفزات أو يعلق داخل الجدران.
+
+You said
+PHASE 2 — REBUILD THE PARKOUR INTO A LONG, VERY HARD HORROR ESCAPE COURSE
+
+The current structural greybox is too simple. The ParkourArea currently has only a few large floating platforms, which is not enough.
+
+Rebuild and expand the parkour section. Keep the main map order and the StartArea, but replace the simple parkour with a long, difficult, multi-level horror obstacle course.
+
+The player should leave the SpawnArea, pass through the entrance, and immediately begin a dangerous escape route. The course must feel like an abandoned laboratory collapsing around the player.
+
+IMPORTANT:
+- This must be difficult, not easy.
+- The parkour must be long.
+- The route must use different heights and directions.
+- Use paths going forward, left, right, upward, and downward.
+- Do not make the entire course a flat straight line.
+- Do not make it an impossible maze.
+- Every difficult jump must still be possible and readable.
+- Do not add the monster AI or gameplay scripts yet. Build the physical course first.
+
+========================
+NEW PARKOUR STRUCTURE
+========================
+
+Replace the current simple 9-platform ParkourArea with 10–14 connected parkour sections.
+
+Create these folders:
+
+Workspace
+└── Map
+    ├── ParkourEntrance
+    ├── ParkourSection01
+    ├── ParkourSection02
+    ├── ParkourSection03
+    ├── ParkourSection04
+    ├── ParkourSection05
+    ├── ParkourSection06
+    ├── ParkourSection07
+    ├── ParkourSection08
+    ├── ParkourSection09
+    ├── ParkourSection10
+    ├── ParkourExit
+    ├── VerticalRoutes
+    ├── SideRoutes
+    └── VoidArea
+
+The complete parkour should be approximately:
+
+- 350–500 studs long
+- 100–140 studs wide
+- 80–160 studs vertically
+- clearly longer than the current version
+- above a deep dark void
+- with no continuous floor underneath
+
+========================
+PARKOUR ENTRANCE
+========================
+
+Create a strong transition from RightTurnCorridor into ParkourEntrance.
+
+The entrance must contain:
+
+- a large damaged laboratory door
+- a warning sign
+- broken lights
+- a visible drop beyond the doorway
+- a first safe platform
+- a clear view of the first few jumps
+- enough space for players to understand that the normal floor ends here
+
+The player must not walk directly onto an invisible or confusing edge.
+
+Create two entrance routes:
+
+1. Main route:
+- wider
+- easier to understand
+- still difficult
+- contains the normal escape path
+
+2. Risky shortcut:
+- narrower
+- more dangerous
+- saves time
+- can be used by skilled players
+
+Both routes must eventually connect to the main course.
+
+========================
+PARKOUR SECTION DESIGN
+========================
+
+Do not make every section look the same. Use different mechanics and directions.
+
+Section types should include:
+
+1. Broken laboratory floor:
+- jump across separated pieces of floor
+- some pieces are tilted
+- some pieces are narrow
+- use broken walls and exposed pipes
+
+2. Steel beam section:
+- walk and jump across narrow metal beams
+- beams should be 3–6 studs wide
+- add gaps and different heights
+- do not make the beams invisible in darkness
+
+3. Pipe climbing section:
+- use large horizontal and vertical pipes
+- allow the player to jump between pipes
+- create an upward route
+- include a lower dangerous route and a higher shortcut
+
+4. Vertical shaft:
+- the player must climb upward through a broken elevator shaft
+- use platforms on alternating left and right sides
+- include ladders, beams, pipes, and broken elevator parts
+- do not create one straight staircase
+
+5. Descending section:
+- the player must drop downward through broken floors
+- use platforms at different heights
+- make the safe landing areas visible
+- do not create blind drops
+
+6. Rotating laboratory machinery:
+- use large inactive machinery as platforms
+- leave gaps between machines
+- create a route around and above them
+
+7. Broken bridge section:
+- several bridge segments are missing
+- the player must jump between the remaining pieces
+- include side rails only in some areas
+
+8. Narrow maintenance   ماقبل كامل الرساله
+
+Duck.ai said
+إي، الرسالة انقطعت عند قسم Narrow maintenance route. لا تعيد إرسالها من البداية؛ أكمل من هذا السطر:
+
+text
+
+
+8. Narrow maintenance route:
+- use a narrow path along the side of a large laboratory room
+- include pipes, wall-mounted platforms, broken vents, and hanging cables
+- make the route 4–7 studs wide in difficult areas
+- add a wider safe platform after this section
+- place a dangerous shortcut above the main route
+
+9. Multi-level laboratory room:
+- create a lower route, middle route, and upper route
+- the upper route is faster but much harder
+- the lower route is safer but longer
+- use broken floors, platforms, beams, and pipes
+- all routes must reconnect later
+- do not create dead ends
+
+10. Final escape section:
+- make the final section the most intense part of the parkour
+- use broken bridges, narrow beams, vertical climbing, and gaps
+- include an upward escape route
+- end with a large visible ParkourExit
+- the ParkourExit must lead to the next area
+
+========================
+DIFFICULTY RULES
+========================
+
+Make the parkour very difficult, but never impossible.
+
+Use these measurements:
+
+- Normal platform width: 6–12 studs
+- Difficult platform width: 4–7 studs
+- Very difficult beam width: 3–5 studs
+- Normal horizontal gap: 8–14 studs
+- Difficult horizontal gap: 14–18 studs
+- Never exceed 18 studs for a normal jump
+- Vertical difference between nearby platforms: 3–8 studs
+- Vertical climbing gaps: 8–14 studs
+- Never hide the required landing platform completely
+
+Do not make the course easy by adding large platforms everywhere.
+
+Only add a rest platform after approximately 8–12 difficult jumps.
+
+Rest platforms should be:
+- 12–18 studs wide
+- clearly visible
+- placed at important transitions
+- not frequent enough to make the course easy
+
+The first section may teach the player the movement style, but it must still be challenging. The middle and final sections must be very difficult.
+
+========================
+DIRECTION AND HEIGHT VARIETY
+========================
+
+The player must not always move forward.
+
+Use this general route pattern:
+
+- forward
+- right
+- upward
+- left
+- forward
+- downward
+- right
+- upward
+- left
+- forward
+- downward
+- final upward escape
+
+Create platforms at different heights. Some platforms must be above the player and others below the player.
+
+The route should feel like the laboratory has collapsed into a vertical escape zone.
+
+Every change of direction must have:
+- a visible destination
+- enough space to turn
+- a light, sign, or environmental clue
+- no random dead end
+
+========================
+VOID AND FALLING
+========================
+
+Keep the entire course above a deep dark void.
+
+Do not place a normal floor under the parkour.
+
+Use:
+- dark blue-black fog
+- distant broken laboratory parts
+- faint lights far below
+- smoke and dust
+- falling debris
+- distant metal structures
+
+The nearby platforms must still be visible to the player.
+
+Create a hidden kill zone far below the course:
+
+- Transparency = 1
+- CanCollide = false
+- far below the playable area
+- used only to detect falling players
+
+Do not create an invisible solid floor that players can stand on.
+
+========================
+DOORS AND TRANSITIONS
+========================
+
+Add physical doors and clear transitions between major sections.
+
+Create these objects:
+
+- ParkourEntranceDoor
+- MaintenanceEntrance
+- VerticalShaftEntrance
+- LaboratoryCollapseExit
+- ParkourMidExit
+- ParkourFinalExit
+
+For now, these doors can be non-interactive models. They must clearly show where the player enters and exits each section.
+
+Use:
+- damaged metal doors
+- half-open blast doors
+- broken elevator doors
+- maintenance hatches
+- emergency exits
+- chained doors that are visually blocked
+
+Do not place any door in the only playable path. Every section must have one obvious entrance and one obvious exit.
+
+========================
+HORROR ENVIRONMENT
+========================
+
+Add horror atmosphere through the environment, not only darkness.
+
+Use:
+- damaged walls
+- broken glass
+- hanging cables
+- leaking pipes
+- abandoned laboratory machines
+- warning signs
+- rust and blood stains used sparingly
+- broken observation windows
+- emergency red lights
+- flickering fluorescent lights
+- steam vents
+- dust particles
+- deep shadows around the edges
+
+Do not cover important platforms with decoration. The player must be able to see where they are jumping.
+
+Add placeholder sound objects in suitable locations:
+
+- distant metal impacts
+- pipe pressure
+- electrical buzzing
+- emergency alarms
+- wind in the vertical shaft
+- distant footsteps
+- low laboratory ambience
+
+Do not create the monster AI or chase scripts yet. Only prepare the environment and sound locations. The monster will be added in a later phase.
+
+========================
+FINAL PLAYABILITY CHECK
+========================
+
+Before stopping, test the entire route from the player’s perspective.
+
+Verify that:
+
+- The parkour is much longer than the old version.
+- The course is difficult and challenging.
+- The route goes forward, left, right, upward, and downward.
+- There are narrow paths, beams, pipes, broken floors, and vertical sections.
+- Every required jump is possible.
+- Every destination is visible or clearly indicated.
+- There are no impossible gaps.
+- There are no invisible walls blocking the route.
+- There is no continuous floor under the parkour.
+- Every section has a clear entrance and exit.
+- Doors do not block the playable route.
+- The void is deep and dangerous.
+- Horror decorations do not hide the platforms.
+- The main route and risky shortcut are clearly different.
+- The final exit is visible at the end.
+
+Complete only this physical parkour and horror greybox phase. Do not add the monster or chase system yet. Stop after completing this phase and wait for the next instruction.
+بعد إرسال هذا الجزء، انتظر حتى ينتهي بالكامل. لا ترسل له رسالة الوحش أو الأصوات المتقدمة الآن؛ أولاً نتحقق أن الباركور نفسه طويل، صعب، وقابل للعب.
+
+You said
+شنو قال -- I've read all three of your messages. You're asking me to:
+
+1. **Phase 2** — Rebuild the simple parkour into a long, very hard, multi-level horror escape course with 10-14 sections
+2. Include detailed section types (broken floors, steel beams, pipe climbing, vertical shafts, descending sections, machinery, broken bridges, narrow maintenance routes, multi-level rooms, final escape)
+3. Add horror environment, doors/transitions, void/kill zone, sound placeholders, and difficulty rules
+4. No monster AI yet — physical course only
+
+Let me first explore the current map state to plan the rebuild properly.
+
+Duck.ai said
+قال إنه فهم الرسائل الثلاث كلها، وفهم المطلوب بالكامل:
+
+إعادة بناء الباركور من جديد ليكون طويلاً وصعباً جداً.
+تقسيمه إلى 10–14 منطقة مختلفة.
+إضافة القفز بين الأرضيات المكسورة والعوارض والأنابيب والمصعد العمودي والجسور والممرات الضيقة.
+إضافة طرق فوق وتحت ويمين ويسار.
+إضافة الأبواب والمداخل والمخارج والفراغ المظلم.
+إضافة أجواء الرعب والأصوات بشكل مبدئي.
+عدم إضافة الوحش أو نظام المطاردة حالياً.
+فحص الخريطة الحالية أولاً قبل أن يبدأ الهدم والبناء.
+ردّه جيد، وهذا يعني أنه لم يبدأ التنفيذ بعد؛ هو الآن يفحص الخريطة حتى يعرف ماذا يحذف وماذا يبقي.
+
+لا ترسل له أي رسالة إضافية الآن. انتظر حتى يقول إنه بدأ البناء أو يعرض النتيجة. إذا قال مثلاً إنه سيبدأ الهدم أو ظهرت له مشكلة في المسافات أو السكربتات، أرسل لي كلامه وسأعطيك الرد المناسب.
+
+
+
